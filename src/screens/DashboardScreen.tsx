@@ -7,22 +7,25 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useExpenseStore } from "../state/expenseStore";
 import { format } from "date-fns";
+import BalanceCard from "../components/BalanceCard";
+import { useNavigation } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 
 export default function DashboardScreen() {
   const { expenses, getTotalSpent, getCategoryInsights, budgets } = useExpenseStore();
+  const navigation = useNavigation<any>();
   
   const totalSpent = getTotalSpent();
   const recentExpenses = expenses.slice(0, 5);
   const categoryInsights = getCategoryInsights().slice(0, 3);
   
   const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
-  const budgetUsedPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
+      <StatusBar style="light" />
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-6 pt-4 pb-6">
@@ -34,45 +37,9 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        {/* Total Spending Card */}
+        {/* Balance Card */}
         <View className="mx-6 mb-6">
-          <LinearGradient
-            colors={["#3b82f6", "#1e40af"]}
-            className="rounded-2xl p-6"
-          >
-            <View className="flex-row justify-between items-start mb-4">
-              <View>
-                <Text className="text-blue-100 text-sm font-medium">
-                  This Month
-                </Text>
-                <Text className="text-white text-3xl font-bold mt-1">
-                  ${totalSpent.toFixed(2)}
-                </Text>
-              </View>
-              <View className="bg-white/20 rounded-full p-3">
-                <Ionicons name="wallet" size={24} color="white" />
-              </View>
-            </View>
-            
-            {totalBudget > 0 && (
-              <View>
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text className="text-blue-100 text-sm">
-                    Budget Used
-                  </Text>
-                  <Text className="text-white text-sm font-medium">
-                    {budgetUsedPercentage.toFixed(0)}%
-                  </Text>
-                </View>
-                <View className="bg-white/20 rounded-full h-2">
-                  <View 
-                    className="bg-white rounded-full h-2"
-                    style={{ width: `${Math.min(budgetUsedPercentage, 100)}%` }}
-                  />
-                </View>
-              </View>
-            )}
-          </LinearGradient>
+          <BalanceCard totalSpent={totalSpent} totalBudget={totalBudget} />
         </View>
 
         {/* Quick Actions */}
@@ -80,8 +47,11 @@ export default function DashboardScreen() {
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Quick Actions
           </Text>
-          <View className="flex-row space-x-4">
-            <Pressable className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <View className="flex-row space-x-4">
+            <Pressable 
+              className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+              onPress={() => navigation.navigate("Add")}
+            >
               <View className="bg-green-100 rounded-full w-10 h-10 items-center justify-center mb-3">
                 <Ionicons name="add" size={20} color="#10b981" />
               </View>
@@ -89,7 +59,10 @@ export default function DashboardScreen() {
               <Text className="text-gray-500 text-sm">Manual entry</Text>
             </Pressable>
             
-            <Pressable className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <Pressable 
+              className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+              onPress={() => navigation.navigate("Add")}
+            >
               <View className="bg-blue-100 rounded-full w-10 h-10 items-center justify-center mb-3">
                 <Ionicons name="camera" size={20} color="#3b82f6" />
               </View>
@@ -138,8 +111,8 @@ export default function DashboardScreen() {
               <Text className="text-lg font-semibold text-gray-900">
                 Recent Expenses
               </Text>
-              <Pressable>
-                <Text className="text-blue-600 font-medium">See All</Text>
+              <Pressable onPress={() => navigation.navigate("Add")}>
+                <Text className="text-blue-600 font-medium">Add</Text>
               </Pressable>
             </View>
             <View className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -182,7 +155,7 @@ export default function DashboardScreen() {
             <Text className="text-gray-500 text-center mb-6">
               Start tracking your expenses by adding your first transaction
             </Text>
-            <Pressable className="bg-blue-600 rounded-xl px-6 py-3">
+            <Pressable className="bg-blue-600 rounded-xl px-6 py-3" onPress={() => navigation.navigate("Add")}>
               <Text className="text-white font-semibold">Add First Expense</Text>
             </Pressable>
           </View>
