@@ -11,7 +11,6 @@ import { useExpenseStore } from "../state/expenseStore";
 import { format } from "date-fns";
 import BalanceCard from "../components/BalanceCard";
 import { useNavigation } from "@react-navigation/native";
-import { StatusBar } from "expo-status-bar";
 
 export default function DashboardScreen() {
   const { expenses, getTotalSpent, getCategoryInsights, budgets } = useExpenseStore();
@@ -25,7 +24,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <StatusBar style="light" />
+
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-6 pt-4 pb-6">
