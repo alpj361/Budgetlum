@@ -8,8 +8,10 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AnimatedPressable from "../components/AnimatedPressable";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { useNavigation } from "@react-navigation/native";
 import { useExpenseStore } from "../state/expenseStore";
 import { EXPENSE_CATEGORIES, ExpenseCategory } from "../types/expense";
 import { categorizeExpense } from "../utils/aiCategorization";
@@ -21,6 +23,7 @@ export default function AddExpenseScreen() {
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>(EXPENSE_CATEGORIES[0]);
   const [showCamera, setShowCamera] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const navigation = useNavigation<any>();
   
   const { addExpense } = useExpenseStore();
 
@@ -92,12 +95,12 @@ export default function AddExpenseScreen() {
           <View className="absolute top-0 left-0 right-0 bottom-0 z-10">
             <SafeAreaView className="flex-1">
               <View className="flex-row justify-between items-center p-4">
-                <Pressable
+                <AnimatedPressable
                   onPress={() => setShowCamera(false)}
                   className="bg-black/50 rounded-full p-3"
                 >
                   <Ionicons name="close" size={24} color="white" />
-                </Pressable>
+                </AnimatedPressable>
                 <Text className="text-white font-semibold text-lg">
                   Scan Receipt
                 </Text>
@@ -113,7 +116,7 @@ export default function AddExpenseScreen() {
               </View>
               
               <View className="p-6">
-                <Pressable
+                <AnimatedPressable
                   className="bg-blue-600 rounded-xl py-4 items-center"
                   onPress={() => {
                     // TODO: Implement receipt scanning with AI
@@ -125,7 +128,7 @@ export default function AddExpenseScreen() {
                   <Text className="text-white font-semibold mt-2">
                     Capture Receipt
                   </Text>
-                </Pressable>
+                </AnimatedPressable>
               </View>
             </SafeAreaView>
           </View>
@@ -149,25 +152,25 @@ export default function AddExpenseScreen() {
           </View>
 
           {/* Quick Actions */}
-          <View className="flex-row space-x-4 mb-8">
-            <Pressable className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <View className="flex-row space-x-4 mb-8">
+            <AnimatedPressable className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <View className="bg-green-100 rounded-full w-10 h-10 items-center justify-center mb-3">
                 <Ionicons name="create-outline" size={20} color="#10b981" />
               </View>
               <Text className="font-medium text-gray-900">Manual Entry</Text>
               <Text className="text-gray-500 text-sm">Fill details below</Text>
-            </Pressable>
+            </AnimatedPressable>
             
-            <Pressable 
+            <AnimatedPressable 
               className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100"
-              onPress={handleScanReceipt}
+              onPress={() => navigation.navigate("StatementUpload")}
             >
               <View className="bg-blue-100 rounded-full w-10 h-10 items-center justify-center mb-3">
-                <Ionicons name="camera" size={20} color="#3b82f6" />
+                <Ionicons name="document-text" size={20} color="#3b82f6" />
               </View>
-              <Text className="font-medium text-gray-900">Scan Receipt</Text>
+              <Text className="font-medium text-gray-900">Upload Statement</Text>
               <Text className="text-gray-500 text-sm">Auto-detect</Text>
-            </Pressable>
+            </AnimatedPressable>
           </View>
 
           {/* Form */}
@@ -242,14 +245,14 @@ export default function AddExpenseScreen() {
           </View>
 
           {/* Add Button */}
-          <Pressable
+          <AnimatedPressable
             onPress={handleAddExpense}
             className="bg-blue-600 rounded-xl py-4 items-center shadow-sm"
           >
             <Text className="text-white font-semibold text-lg">
               Add Expense
             </Text>
-          </Pressable>
+          </AnimatedPressable>
         </View>
       </ScrollView>
     </SafeAreaView>

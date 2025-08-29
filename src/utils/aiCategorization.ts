@@ -3,34 +3,27 @@ import { EXPENSE_CATEGORIES, ExpenseCategory } from "../types/expense";
 
 export const categorizeExpense = async (description: string): Promise<ExpenseCategory> => {
   try {
-    const prompt = `
-You are an expense categorization assistant. Given an expense description, categorize it into one of these categories:
-
-Categories: ${EXPENSE_CATEGORIES.join(", ")}
-
-Rules:
-- Return ONLY the category name, nothing else
-- Choose the most appropriate category
-- If unsure, choose "Other"
-
-Expense description: "${description}"
-
-Category:`;
-
+    const prompt = `You categorize expenses. Categories: ${EXPENSE_CATEGORIES.join(", ")}\nReturn ONLY the category.\nDescription: "${description}"\nCategory:`;
     const response = await getOpenAIChatResponse(prompt);
     const category = response.content.trim();
-    
-    // Validate that the response is a valid category
-    if (EXPENSE_CATEGORIES.includes(category as ExpenseCategory)) {
-      return category as ExpenseCategory;
+    if (EXPENSE_CATEGORIES.includes(category as ExpenseCategory)) return category as ExpenseCategory;
+    return "Other";
+  } catch {
+    return "Other";
+  }
+};
+
+export const categorizeDescriptionsBatch = async (descriptions: string[]): Promise<ExpenseCategory[]> => {
+  try {
+    const prompt = `Categorize each description to one of: ${EXPENSE_CATEGORIES.join(", ")}.\nReturn ONLY a JSON array of category strings with the same order.\nDescriptions: ${JSON.stringify(descriptions)}`;
+    const res = await getOpenAIChatResponse(prompt);
+    const arr = JSON.parse(res.content.trim());
+    if (Array.isArray(arr)) {
+      return arr.map((c) => (EXPENSE_CATEGORIES.includes(c) ? (c as ExpenseCategory) : "Other"));
     }
-    
-    // Fallback to "Other" if the AI response is not valid
-    return "Other";
-  } catch (error) {
-    console.error("Error categorizing expense:", error);
-    // Fallback to "Other" if there's an error
-    return "Other";
+    return descriptions.map(() => "Other");
+  } catch {
+    return descriptions.map(() => "Other");
   }
 };
 

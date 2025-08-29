@@ -7,6 +7,7 @@ import {
   TextInput,
   Alert,
 } from "react-native";
+import AnimatedPressable from "../components/AnimatedPressable";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useExpenseStore } from "../state/expenseStore";
@@ -118,7 +119,7 @@ export default function BudgetScreen() {
 
         {/* Add Budget Button */}
         <View className="px-6 mb-6">
-          <Pressable
+          <AnimatedPressable
             onPress={() => setShowAddBudget(!showAddBudget)}
             className="bg-blue-600 rounded-xl py-4 items-center shadow-sm"
           >
@@ -128,7 +129,7 @@ export default function BudgetScreen() {
                 Add Budget
               </Text>
             </View>
-          </Pressable>
+          </AnimatedPressable>
         </View>
 
         {/* Add Budget Form */}
@@ -189,7 +190,7 @@ export default function BudgetScreen() {
                 <Text className="text-gray-700 font-medium mb-2">Period</Text>
                 <View className="flex-row space-x-3">
                   {(["weekly", "monthly", "yearly"] as const).map((period) => (
-                    <Pressable
+                    <AnimatedPressable
                       key={period}
                       onPress={() => setNewBudgetPeriod(period)}
                       className={`flex-1 py-3 rounded-xl border ${
@@ -207,29 +208,29 @@ export default function BudgetScreen() {
                       >
                         {period}
                       </Text>
-                    </Pressable>
+                    </AnimatedPressable>
                   ))}
                 </View>
               </View>
 
               {/* Buttons */}
               <View className="flex-row space-x-3">
-                <Pressable
+                <AnimatedPressable
                   onPress={() => setShowAddBudget(false)}
                   className="flex-1 py-3 rounded-xl border border-gray-200"
                 >
                   <Text className="text-center font-medium text-gray-700">
                     Cancel
                   </Text>
-                </Pressable>
-                <Pressable
+                </AnimatedPressable>
+                <AnimatedPressable
                   onPress={handleAddBudget}
                   className="flex-1 py-3 rounded-xl bg-blue-600"
                 >
                   <Text className="text-center font-medium text-white">
                     Set Budget
                   </Text>
-                </Pressable>
+                </AnimatedPressable>
               </View>
             </View>
           </View>
