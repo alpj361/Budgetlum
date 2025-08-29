@@ -1,0 +1,193 @@
+import React from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useExpenseStore } from "../state/expenseStore";
+import { format } from "date-fns";
+
+export default function DashboardScreen() {
+  const { expenses, getTotalSpent, getCategoryInsights, budgets } = useExpenseStore();
+  
+  const totalSpent = getTotalSpent();
+  const recentExpenses = expenses.slice(0, 5);
+  const categoryInsights = getCategoryInsights().slice(0, 3);
+  
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
+  const budgetUsedPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View className="px-6 pt-4 pb-6">
+          <Text className="text-2xl font-bold text-gray-900 mb-2">
+            Good morning! 👋
+          </Text>
+          <Text className="text-gray-600">
+            Here is your spending overview
+          </Text>
+        </View>
+
+        {/* Total Spending Card */}
+        <View className="mx-6 mb-6">
+          <LinearGradient
+            colors={["#3b82f6", "#1e40af"]}
+            className="rounded-2xl p-6"
+          >
+            <View className="flex-row justify-between items-start mb-4">
+              <View>
+                <Text className="text-blue-100 text-sm font-medium">
+                  This Month
+                </Text>
+                <Text className="text-white text-3xl font-bold mt-1">
+                  ${totalSpent.toFixed(2)}
+                </Text>
+              </View>
+              <View className="bg-white/20 rounded-full p-3">
+                <Ionicons name="wallet" size={24} color="white" />
+              </View>
+            </View>
+            
+            {totalBudget > 0 && (
+              <View>
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-blue-100 text-sm">
+                    Budget Used
+                  </Text>
+                  <Text className="text-white text-sm font-medium">
+                    {budgetUsedPercentage.toFixed(0)}%
+                  </Text>
+                </View>
+                <View className="bg-white/20 rounded-full h-2">
+                  <View 
+                    className="bg-white rounded-full h-2"
+                    style={{ width: `${Math.min(budgetUsedPercentage, 100)}%` }}
+                  />
+                </View>
+              </View>
+            )}
+          </LinearGradient>
+        </View>
+
+        {/* Quick Actions */}
+        <View className="px-6 mb-6">
+          <Text className="text-lg font-semibold text-gray-900 mb-4">
+            Quick Actions
+          </Text>
+          <View className="flex-row space-x-4">
+            <Pressable className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <View className="bg-green-100 rounded-full w-10 h-10 items-center justify-center mb-3">
+                <Ionicons name="add" size={20} color="#10b981" />
+              </View>
+              <Text className="font-medium text-gray-900">Add Expense</Text>
+              <Text className="text-gray-500 text-sm">Manual entry</Text>
+            </Pressable>
+            
+            <Pressable className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <View className="bg-blue-100 rounded-full w-10 h-10 items-center justify-center mb-3">
+                <Ionicons name="camera" size={20} color="#3b82f6" />
+              </View>
+              <Text className="font-medium text-gray-900">Scan Receipt</Text>
+              <Text className="text-gray-500 text-sm">Auto-detect</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Top Categories */}
+        {categoryInsights.length > 0 && (
+          <View className="px-6 mb-6">
+            <Text className="text-lg font-semibold text-gray-900 mb-4">
+              Top Categories
+            </Text>
+            <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              {categoryInsights.map((insight, index) => (
+                <View key={insight.category} className={`flex-row items-center justify-between ${index < categoryInsights.length - 1 ? "mb-4" : ""}`}>
+                  <View className="flex-row items-center flex-1">
+                    <View 
+                      className="w-4 h-4 rounded-full mr-3"
+                      style={{ backgroundColor: insight.color }}
+                    />
+                    <Text className="font-medium text-gray-900 flex-1">
+                      {insight.category}
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text className="font-semibold text-gray-900">
+                      ${insight.totalSpent.toFixed(2)}
+                    </Text>
+                    <Text className="text-gray-500 text-sm">
+                      {insight.percentage.toFixed(0)}%
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Recent Expenses */}
+        {recentExpenses.length > 0 && (
+          <View className="px-6 mb-6">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-lg font-semibold text-gray-900">
+                Recent Expenses
+              </Text>
+              <Pressable>
+                <Text className="text-blue-600 font-medium">See All</Text>
+              </Pressable>
+            </View>
+            <View className="bg-white rounded-xl shadow-sm border border-gray-100">
+              {recentExpenses.map((expense, index) => (
+                <View key={expense.id} className={`p-4 ${index < recentExpenses.length - 1 ? "border-b border-gray-100" : ""}`}>
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-1">
+                      <Text className="font-medium text-gray-900 mb-1">
+                        {expense.description}
+                      </Text>
+                      <View className="flex-row items-center">
+                        <Text className="text-gray-500 text-sm">
+                          {expense.category}
+                        </Text>
+                        <Text className="text-gray-400 text-sm mx-2">•</Text>
+                        <Text className="text-gray-500 text-sm">
+                          {format(new Date(expense.date), "MMM d")}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="font-semibold text-gray-900">
+                      -${expense.amount.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Empty State */}
+        {expenses.length === 0 && (
+          <View className="px-6 py-12 items-center">
+            <View className="bg-gray-100 rounded-full w-16 h-16 items-center justify-center mb-4">
+              <Ionicons name="receipt-outline" size={32} color="#6b7280" />
+            </View>
+            <Text className="text-lg font-semibold text-gray-900 mb-2">
+              No expenses yet
+            </Text>
+            <Text className="text-gray-500 text-center mb-6">
+              Start tracking your expenses by adding your first transaction
+            </Text>
+            <Pressable className="bg-blue-600 rounded-xl px-6 py-3">
+              <Text className="text-white font-semibold">Add First Expense</Text>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
