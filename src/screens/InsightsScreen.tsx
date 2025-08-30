@@ -132,9 +132,9 @@ export default function InsightsScreen() {
           </Text>
           <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row items-end space-x-2" style={{ width: Math.max(width - 80, dailySpending.length * 20) }}>
+              <View className="flex-row items-end space-x-1" style={{ width: Math.max(width - 80, dailySpending.length * 12) }}>
                 {dailySpending.map((day, index) => {
-                  const height = Math.max((day.amount / maxDailySpending) * 120, 4);
+                  const height = Math.max((day.amount / maxDailySpending) * 90, 4);
                   const isToday = day.date.toDateString() === now.toDateString();
                   
                   return (
@@ -143,8 +143,8 @@ export default function InsightsScreen() {
                         className={`rounded-t ${day.amount > 0 ? "bg-blue-500" : "bg-gray-200"} ${isToday ? "bg-blue-600" : ""}`}
                         style={{ 
                           height: height,
-                          width: 16,
-                          marginBottom: 8
+                          width: 10,
+                          marginBottom: 6
                         }}
                       />
                       <Text className="text-xs text-gray-500 transform -rotate-45 origin-center">
@@ -155,7 +155,7 @@ export default function InsightsScreen() {
                 })}
               </View>
             </ScrollView>
-            <View className="mt-4 pt-4 border-t border-gray-100">
+            <View className="mt-3 pt-3 border-t border-gray-100">
               <Text className="text-gray-500 text-sm text-center">
                 Tap and drag to see daily amounts
               </Text>

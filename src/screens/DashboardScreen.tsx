@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useExpenseStore } from "../state/expenseStore";
@@ -10,6 +10,7 @@ import AnimatedPressable from "../components/AnimatedPressable";
 import { useSettingsStore } from "../state/settingsStore";
 import { formatCurrency } from "../utils/currency";
 import ConfirmModal from "../components/ConfirmModal";
+import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
 export default function DashboardScreen() {
   const { expenses, getTotalSpent, getCategoryInsights, budgets, deleteExpense } = useExpenseStore();
@@ -116,34 +117,52 @@ export default function DashboardScreen() {
                 <Text className="text-blue-600 font-medium">Add</Text>
               </AnimatedPressable>
             </View>
-            <View className="bg-white rounded-xl shadow-sm border border-gray-100">
+            <View className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               {recentExpenses.map((expense, index) => (
-                <View key={expense.id} className={`p-4 ${index < recentExpenses.length - 1 ? "border-b border-gray-100" : ""}`}>
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-1">
-                      <Text className="font-medium text-gray-900 mb-1">
-                        {expense.description}
-                      </Text>
-                      <View className="flex-row items-center">
-                        <Text className="text-gray-500 text-sm">
-                          {expense.category}
+                <Swipeable
+                  key={expense.id}
+                  overshootRight={false}
+                  rightThreshold={40}
+                  renderRightActions={(progress, translation, methods) => (
+                    <View className="h-full flex-row items-stretch">
+                      <Pressable
+                        onPress={() => {
+                          setPendingDelete(expense.id);
+                          methods?.close?.();
+                        }}
+                        className="bg-red-500 w-16 items-center justify-center"
+                        accessibilityRole="button"
+                        accessibilityLabel="Eliminar"
+                      >
+                        <Ionicons name="trash" size={22} color="white" />
+                      </Pressable>
+                    </View>
+                  )}
+                >
+                  <View className={`p-4 ${index < recentExpenses.length - 1 ? "border-b border-gray-100" : ""}`}>
+                    <View className="flex-row justify-between items-center">
+                      <View className="flex-1">
+                        <Text className="font-medium text-gray-900 mb-1">
+                          {expense.description}
                         </Text>
-                        <Text className="text-gray-400 text-sm mx-2">•</Text>
-                        <Text className="text-gray-500 text-sm">
-                          {format(new Date(expense.date), "MMM d")}
+                        <View className="flex-row items-center">
+                          <Text className="text-gray-500 text-sm">
+                            {expense.category}
+                          </Text>
+                          <Text className="text-gray-400 text-sm mx-2">•</Text>
+                          <Text className="text-gray-500 text-sm">
+                            {format(new Date(expense.date), "MMM d")}
+                          </Text>
+                        </View>
+                      </View>
+                      <View className="items-end">
+                        <Text className="font-semibold text-gray-900">
+                          -{formatCurrency(expense.amount, currency)}
                         </Text>
                       </View>
                     </View>
-                    <View className="items-end">
-                      <Text className="font-semibold text-gray-900">
-                        -{formatCurrency(expense.amount, currency)}
-                      </Text>
-                      <AnimatedPressable className="mt-2 px-3 py-1.5 rounded-full bg-red-50" onPress={() => setPendingDelete(expense.id)}>
-                        <Text className="text-red-700 text-xs font-medium">Eliminar</Text>
-                      </AnimatedPressable>
-                    </View>
                   </View>
-                </View>
+                </Swipeable>
               ))}
             </View>
           </View>
