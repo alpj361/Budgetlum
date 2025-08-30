@@ -1,9 +1,5 @@
-import React from "react";
-import {
-  View,
-  Text,
-  ScrollView,
- } from "react-native";
+import React, { useState } from "react";
+import { View, Text, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useExpenseStore } from "../state/expenseStore";
@@ -13,11 +9,14 @@ import { useNavigation } from "@react-navigation/native";
 import AnimatedPressable from "../components/AnimatedPressable";
 import { useSettingsStore } from "../state/settingsStore";
 import { formatCurrency } from "../utils/currency";
+import ConfirmModal from "../components/ConfirmModal";
 
 export default function DashboardScreen() {
-  const { expenses, getTotalSpent, getCategoryInsights, budgets } = useExpenseStore();
+  const { expenses, getTotalSpent, getCategoryInsights, budgets, deleteExpense } = useExpenseStore();
   const navigation = useNavigation<any>();
-  
+
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
   const totalSpent = getTotalSpent();
   const currency = useSettingsStore((s) => s.primaryCurrency);
   const recentExpenses = expenses.slice(0, 5);
@@ -135,9 +134,14 @@ export default function DashboardScreen() {
                         </Text>
                       </View>
                     </View>
-                    <Text className="font-semibold text-gray-900">
-                      -{formatCurrency(expense.amount, currency)}
-                    </Text>
+                    <View className="items-end">
+                      <Text className="font-semibold text-gray-900">
+                        -{formatCurrency(expense.amount, currency)}
+                      </Text>
+                      <AnimatedPressable className="mt-2 px-3 py-1.5 rounded-full bg-red-50" onPress={() => setPendingDelete(expense.id)}>
+                        <Text className="text-red-700 text-xs font-medium">Eliminar</Text>
+                      </AnimatedPressable>
+                    </View>
                   </View>
                 </View>
               ))}
@@ -163,6 +167,18 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+      <ConfirmModal
+        visible={!!pendingDelete}
+        title="Eliminar gasto"
+        message="Esta acción no se puede deshacer"
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) deleteExpense(pendingDelete);
+          setPendingDelete(null);
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -29,7 +29,7 @@ export const CATEGORIES: CategoryDef[] = [
     subs: [
       { id: "automovil", label: "Automóvil" },
       { id: "combustible", label: "Combustible" },
-      { id: "ride_hailing", label: "Ride-hailing" },
+      { id: "ride_hailing", label: "Servicio de taxi" },
       { id: "transporte_publico", label: "Transporte público" },
       { id: "estacionamiento", label: "Estacionamiento" },
       { id: "peajes", label: "Peajes" },

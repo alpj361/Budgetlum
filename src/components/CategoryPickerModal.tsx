@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Modal, View, Text, TextInput, ScrollView, Pressable } from "react-native";
-import { CATEGORIES, CategoryDef } from "../types/categories";
+import { Modal, View, Text, TextInput, ScrollView, Pressable, Dimensions } from "react-native";
+import { CATEGORIES, CategoryDef, getLabelsFromIds } from "../types/categories";
 import { Ionicons } from "@expo/vector-icons";
 import AnimatedPressable from "./AnimatedPressable";
 
@@ -18,7 +18,7 @@ interface Props {
 
 export default function CategoryPickerModal({ visible, onClose, onSelect, recent = [] }: Props) {
   const [query, setQuery] = useState("");
-  const [activeCat, setActiveCat] = useState<string | null>(null);
+  const [activeCat, setActiveCat] = useState<string | null>(CATEGORIES[0]?.id ?? null);
 
   const filteredCats = useMemo(() => {
     if (!query.trim()) return CATEGORIES;
@@ -42,6 +42,9 @@ export default function CategoryPickerModal({ visible, onClose, onSelect, recent
       </Pressable>
       {(activeCat === cat.id || query) && (
         <View className="px-2">
+          <AnimatedPressable onPress={() => handleSelect(cat.id)} className="px-4 py-3 rounded-xl border border-gray-200 bg-white mb-2">
+            <Text className="text-gray-800">Sin subcategoría</Text>
+          </AnimatedPressable>
           {cat.subs.map((sub) => (
             <AnimatedPressable key={sub.id} onPress={() => handleSelect(cat.id, sub.id)} className="px-4 py-3 rounded-xl border border-gray-200 bg-white mb-2">
               <Text className="text-gray-800">{sub.label}</Text>
@@ -52,10 +55,12 @@ export default function CategoryPickerModal({ visible, onClose, onSelect, recent
     </View>
   );
 
+  const panelHeight = Math.min(Dimensions.get("window").height * 0.8, 640);
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 bg-black/40">
-        <View className="mt-auto bg-white rounded-t-3xl p-4 max-h-[80%]">
+        <View className="mt-auto bg-white rounded-t-3xl p-4" style={{ height: panelHeight }}>
           {/* Header */}
           <View className="flex-row items-center mb-3">
             <AnimatedPressable onPress={onClose} className="w-10 h-10 rounded-full items-center justify-center bg-gray-100">
@@ -83,18 +88,21 @@ export default function CategoryPickerModal({ visible, onClose, onSelect, recent
               <Text className="text-xs text-gray-500 px-2 mb-2">Recientes</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-2">
                 <View className="flex-row space-x-2">
-                  {recent.map((r, idx) => (
-                    <AnimatedPressable key={idx} onPress={() => handleSelect(r.categoryId, r.subcategoryId)} className="px-3 py-1.5 rounded-full border border-gray-200 bg-white">
-                      <Text className="text-gray-700 text-sm">{r.categoryId.replace(/_/g, " ")}{r.subcategoryId ? ` • ${r.subcategoryId.replace(/_/g, " ")}` : ""}</Text>
-                    </AnimatedPressable>
-                  ))}
+                  {recent.map((r, idx) => {
+                    const labels = getLabelsFromIds(r.categoryId, r.subcategoryId);
+                    return (
+                      <AnimatedPressable key={idx} onPress={() => handleSelect(r.categoryId, r.subcategoryId)} className="px-3 py-1.5 rounded-full border border-gray-200 bg-white">
+                        <Text className="text-gray-700 text-sm">{labels.subcategoryLabel || labels.categoryLabel}</Text>
+                      </AnimatedPressable>
+                    );
+                  })}
                 </View>
               </ScrollView>
             </View>
           )}
 
           {/* List */}
-          <ScrollView className="flex-1">
+          <ScrollView>
             {filteredCats.map(renderSection)}
             <View className="h-4" />
           </ScrollView>

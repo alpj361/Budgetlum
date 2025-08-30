@@ -9,7 +9,7 @@ export interface HeuristicSuggestion {
 const KEYWORDS: Record<string, { sub?: string; words: string[] }> = {
   alimentacion: { words: ["restaurante", "comida", "almuerzo", "cena", "cafetería", "cafe", "bar", "supermercado", "market", "tienda"], sub: "restaurantes" },
   supermercado: { words: ["super", "supermercado", "grocery", "mercado", "despensa"], sub: "supermercado" },
-  transporte: { words: ["uber", "didi", "cabify", "taxi", "bus", "metro", "gasolina", "combustible", "peaje", "estacionamiento"], sub: "ride_hailing" },
+  transporte: { words: ["uber", "didi", "cabify", "taxi", "servicio de taxi", "viaje en taxi", "bus", "metro", "gasolina", "combustible", "peaje", "estacionamiento"], sub: "ride_hailing" },
   servicios: { words: ["luz", "electricidad", "agua", "internet", "fibra", "teléfono", "celular", "móvil", "gas"], sub: "internet" },
   compras: { words: ["amazon", "mercadolibre", "falabella", "h&m", "zara", "boutique", "tienda"], sub: "electronica" },
   salud: { words: ["farmacia", "medicina", "doctor", "consulta", "hospital", "gimnasio"], sub: "medicamentos" },
