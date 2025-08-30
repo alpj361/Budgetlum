@@ -11,6 +11,7 @@ import { useSettingsStore } from "../state/settingsStore";
 import { formatCurrency } from "../utils/currency";
 import ConfirmModal from "../components/ConfirmModal";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import * as Haptics from "expo-haptics";
 
 export default function DashboardScreen() {
   const { expenses, getTotalSpent, getCategoryInsights, budgets, deleteExpense } = useExpenseStore();
@@ -30,73 +31,73 @@ export default function DashboardScreen() {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View className="px-6 pt-4 pb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
+        <View className="px-6 pt-2 pb-8">
+          <Text className="text-3xl font-bold text-gray-900 mb-2">
             Good morning! 👋
           </Text>
-          <Text className="text-gray-600">
+          <Text className="text-gray-600 text-base">
             Here is your spending overview
           </Text>
         </View>
 
         {/* Balance Card */}
-        <View className="mx-6 mb-6">
+        <View className="mx-6 mb-8">
           <BalanceCard totalSpent={totalSpent} totalBudget={totalBudget} />
         </View>
 
         {/* Quick Actions */}
-        <View className="px-6 mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
+        <View className="px-6 mb-8">
+          <Text className="text-xl font-semibold text-gray-900 mb-4">
             Quick Actions
           </Text>
-            <View className="flex-row space-x-4">
+            <View className="flex-row" style={{ gap: 12 }}>
             <AnimatedPressable 
-              className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+              className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
               onPress={() => navigation.navigate("Add")}
             >
-              <View className="bg-green-100 rounded-full w-10 h-10 items-center justify-center mb-3">
-                <Ionicons name="add" size={20} color="#10b981" />
+              <View className="bg-green-100 rounded-full w-11 h-11 items-center justify-center mb-4">
+                <Ionicons name="add-outline" size={20} color="#10b981" />
               </View>
-              <Text className="font-medium text-gray-900">Add Expense</Text>
-              <Text className="text-gray-500 text-sm">Manual entry</Text>
+              <Text className="font-semibold text-gray-900 text-base">Add Expense</Text>
+              <Text className="text-gray-500 text-sm mt-1">Manual entry</Text>
             </AnimatedPressable>
             
             <AnimatedPressable 
-              className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+              className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
               onPress={() => navigation.navigate("StatementUpload")}
             >
-              <View className="bg-blue-100 rounded-full w-10 h-10 items-center justify-center mb-3">
-                <Ionicons name="document-text" size={20} color="#3b82f6" />
+              <View className="bg-blue-100 rounded-full w-11 h-11 items-center justify-center mb-4">
+                <Ionicons name="document-text-outline" size={20} color="#3b82f6" />
               </View>
-              <Text className="font-medium text-gray-900">Upload Statement</Text>
-              <Text className="text-gray-500 text-sm">Auto-detect</Text>
+              <Text className="font-semibold text-gray-900 text-base">Upload Statement</Text>
+              <Text className="text-gray-500 text-sm mt-1">Auto-detect</Text>
             </AnimatedPressable>
           </View>
         </View>
 
         {/* Top Categories */}
         {categoryInsights.length > 0 && (
-          <View className="px-6 mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
+          <View className="px-6 mb-8">
+            <Text className="text-xl font-semibold text-gray-900 mb-4">
               Top Categories
             </Text>
-            <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               {categoryInsights.map((insight, index) => (
-                <View key={insight.category} className={`flex-row items-center justify-between ${index < categoryInsights.length - 1 ? "mb-4" : ""}`}>
+                <View key={insight.category} className={`flex-row items-center justify-between ${index < categoryInsights.length - 1 ? "mb-5" : ""}`}>
                   <View className="flex-row items-center flex-1">
                     <View 
-                      className="w-4 h-4 rounded-full mr-3"
+                      className="w-3 h-3 rounded-full mr-4"
                       style={{ backgroundColor: insight.color }}
                     />
-                    <Text className="font-medium text-gray-900 flex-1">
+                    <Text className="font-medium text-gray-900 flex-1 text-base">
                       {insight.category}
                     </Text>
                   </View>
                   <View className="items-end">
-                     <Text className="font-semibold text-gray-900">
+                     <Text className="font-semibold text-gray-900 text-base">
                        {formatCurrency(insight.totalSpent, currency)}
                      </Text>
-                    <Text className="text-gray-500 text-sm">
+                    <Text className="text-gray-500 text-sm mt-0.5">
                       {insight.percentage.toFixed(0)}%
                     </Text>
                   </View>
@@ -108,41 +109,42 @@ export default function DashboardScreen() {
 
         {/* Recent Expenses */}
         {recentExpenses.length > 0 && (
-          <View className="px-6 mb-6">
+          <View className="px-6 mb-8">
             <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-semibold text-gray-900">
+              <Text className="text-xl font-semibold text-gray-900">
                 Recent Expenses
               </Text>
                <AnimatedPressable onPress={() => navigation.navigate("Add")}>
-                <Text className="text-blue-600 font-medium">Add</Text>
+                <Text className="text-blue-600 font-medium text-base">Add</Text>
               </AnimatedPressable>
             </View>
-            <View className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <View className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               {recentExpenses.map((expense, index) => (
                 <Swipeable
                   key={expense.id}
                   overshootRight={false}
                   rightThreshold={40}
-                  renderRightActions={(progress, translation, methods) => (
+                  renderRightActions={(_, __, methods) => (
                     <View className="h-full flex-row items-stretch">
                       <Pressable
                         onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                           setPendingDelete(expense.id);
                           methods?.close?.();
                         }}
-                        className="bg-red-500 w-16 items-center justify-center"
+                        className="bg-red-500 w-20 items-center justify-center"
                         accessibilityRole="button"
                         accessibilityLabel="Eliminar"
                       >
-                        <Ionicons name="trash" size={22} color="white" />
+                        <Ionicons name="trash-outline" size={20} color="white" />
                       </Pressable>
                     </View>
                   )}
                 >
-                  <View className={`p-4 ${index < recentExpenses.length - 1 ? "border-b border-gray-100" : ""}`}>
+                  <View className={`p-5 ${index < recentExpenses.length - 1 ? "border-b border-gray-100" : ""}`}>
                     <View className="flex-row justify-between items-center">
                       <View className="flex-1">
-                        <Text className="font-medium text-gray-900 mb-1">
+                        <Text className="font-medium text-gray-900 mb-2 text-base">
                           {expense.description}
                         </Text>
                         <View className="flex-row items-center">
@@ -156,7 +158,7 @@ export default function DashboardScreen() {
                         </View>
                       </View>
                       <View className="items-end">
-                        <Text className="font-semibold text-gray-900">
+                        <Text className="font-semibold text-gray-900 text-base">
                           -{formatCurrency(expense.amount, currency)}
                         </Text>
                       </View>

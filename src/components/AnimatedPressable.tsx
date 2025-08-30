@@ -28,10 +28,10 @@ export default function AnimatedPressable({
   }));
 
   const pressIn = () => {
-    scale.value = withSpring(scaleOnPress, { damping: 15, stiffness: 200 });
+    scale.value = withSpring(scaleOnPress, { damping: 20, stiffness: 300 });
   };
   const pressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 200 });
+    scale.value = withSpring(1, { damping: 20, stiffness: 300 });
   };
 
   const handlePress = () => {

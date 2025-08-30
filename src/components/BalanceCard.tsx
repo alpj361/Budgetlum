@@ -19,39 +19,39 @@ export default function BalanceCard({ totalSpent, totalBudget }: Props) {
   const progressColor = over ? "#ef4444" : "#3b82f6"; // red or blue-600
 
   return (
-    <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <View className="flex-row justify-between items-start mb-4">
+    <View className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+      <View className="flex-row justify-between items-start mb-5">
         <View>
           <Text className="text-gray-600 text-sm font-medium">
             {hasBudget ? "Current Balance" : "This Month Spent"}
           </Text>
-          <Text className="text-gray-900 text-3xl font-bold mt-1">
+          <Text className="text-gray-900 text-3xl font-bold mt-2">
             {hasBudget ? `${formatCurrency(Math.abs(balance), currency)}` : `${formatCurrency(totalSpent, currency)}`}
           </Text>
           {hasBudget && (
-            <Text className={`${over ? "text-red-500" : "text-gray-500"} mt-1`}>
+            <Text className={`${over ? "text-red-500" : "text-gray-500"} mt-1 text-sm`}>
               {over ? "Over budget" : "Remaining of total budget"}
             </Text>
           )}
         </View>
         <View className="bg-blue-50 rounded-full p-3">
-          <Ionicons name="wallet" size={24} color="#3b82f6" />
+          <Ionicons name="wallet-outline" size={20} color="#3b82f6" />
         </View>
       </View>
 
       {hasBudget && (
         <View>
-          <View className="flex-row justify-between items-center mb-2">
+          <View className="flex-row justify-between items-center mb-3">
             <Text className="text-gray-600 text-sm">Budget Used</Text>
             <Text className="text-gray-700 text-sm font-medium">{Math.min(usedPct, 100).toFixed(0)}%</Text>
           </View>
-          <View className="bg-gray-200 rounded-full h-3">
+          <View className="bg-gray-200 rounded-full h-2">
             <View
-              className="rounded-full h-3"
+              className="rounded-full h-2"
               style={{ width: `${Math.min(usedPct, 100)}%`, backgroundColor: progressColor }}
             />
           </View>
-          <View className="flex-row justify-between mt-2">
+          <View className="flex-row justify-between mt-3">
             <Text className="text-gray-500 text-xs">Spent {formatCurrency(totalSpent, currency)}</Text>
             <Text className="text-gray-500 text-xs">Budget {formatCurrency(totalBudget, currency)}</Text>
           </View>

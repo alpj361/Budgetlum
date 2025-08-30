@@ -48,64 +48,64 @@ export default function InsightsScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View className="px-6 pt-4 pb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
+        <View className="px-6 pt-2 pb-8">
+          <Text className="text-3xl font-bold text-gray-900 mb-2">
             Spending Insights
           </Text>
-          <Text className="text-gray-600">
+          <Text className="text-gray-600 text-base">
             Understand your spending patterns
           </Text>
         </View>
 
         {/* Summary Cards */}
-        <View className="px-6 mb-6">
-          <View className="flex-row space-x-4">
-            <View className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <View className="bg-blue-100 rounded-full w-10 h-10 items-center justify-center mb-3">
-                <Ionicons name="trending-up" size={20} color="#3b82f6" />
+        <View className="px-6 mb-8">
+          <View className="flex-row" style={{ gap: 12 }}>
+            <View className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <View className="bg-blue-100 rounded-full w-11 h-11 items-center justify-center mb-4">
+                <Ionicons name="trending-up-outline" size={20} color="#3b82f6" />
               </View>
               <Text className="text-2xl font-bold text-gray-900">
                 {formatCurrency(totalSpent, currency)}
               </Text>
-              <Text className="text-gray-500 text-sm">Total Spent</Text>
+              <Text className="text-gray-500 text-sm mt-1">Total Spent</Text>
             </View>
             
-            <View className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <View className="bg-green-100 rounded-full w-10 h-10 items-center justify-center mb-3">
-                <Ionicons name="calendar" size={20} color="#10b981" />
+            <View className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <View className="bg-green-100 rounded-full w-11 h-11 items-center justify-center mb-4">
+                <Ionicons name="calendar-outline" size={20} color="#10b981" />
               </View>
               <Text className="text-2xl font-bold text-gray-900">
                 {formatCurrency(avgDailySpending, currency)}
               </Text>
-              <Text className="text-gray-500 text-sm">Daily Average</Text>
+              <Text className="text-gray-500 text-sm mt-1">Daily Average</Text>
             </View>
           </View>
         </View>
 
         {/* Spending by Category */}
         {categoryInsights.length > 0 && (
-          <View className="px-6 mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
+          <View className="px-6 mb-8">
+            <Text className="text-xl font-semibold text-gray-900 mb-4">
               Spending by Category
             </Text>
-            <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               {categoryInsights.map((insight, index) => (
-                <View key={insight.category} className={`${index < categoryInsights.length - 1 ? "mb-4" : ""}`}>
-                  <View className="flex-row justify-between items-center mb-2">
+                <View key={insight.category} className={`${index < categoryInsights.length - 1 ? "mb-5" : ""}`}>
+                  <View className="flex-row justify-between items-center mb-3">
                     <View className="flex-row items-center">
                       <View 
-                        className="w-4 h-4 rounded-full mr-3"
+                        className="w-3 h-3 rounded-full mr-4"
                         style={{ backgroundColor: insight.color }}
                       />
-                      <Text className="font-medium text-gray-900">
+                      <Text className="font-medium text-gray-900 text-base">
                         {insight.category}
                       </Text>
                     </View>
                     <View className="items-end">
-                      <Text className="font-semibold text-gray-900">
+                      <Text className="font-semibold text-gray-900 text-base">
                         {formatCurrency(insight.totalSpent, currency)}
                       </Text>
-                      <Text className="text-gray-500 text-sm">
+                      <Text className="text-gray-500 text-sm mt-0.5">
                         {insight.percentage.toFixed(1)}%
                       </Text>
                     </View>
@@ -126,11 +126,11 @@ export default function InsightsScreen() {
         )}
 
         {/* Daily Spending Chart */}
-        <View className="px-6 mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
+        <View className="px-6 mb-8">
+          <Text className="text-xl font-semibold text-gray-900 mb-4">
             Daily Spending This Month
           </Text>
-          <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row items-end space-x-1" style={{ width: Math.max(width - 80, dailySpending.length * 12) }}>
                 {dailySpending.map((day, index) => {
@@ -155,7 +155,7 @@ export default function InsightsScreen() {
                 })}
               </View>
             </ScrollView>
-            <View className="mt-3 pt-3 border-t border-gray-100">
+            <View className="mt-4 pt-4 border-t border-gray-100">
               <Text className="text-gray-500 text-sm text-center">
                 Tap and drag to see daily amounts
               </Text>
@@ -164,49 +164,49 @@ export default function InsightsScreen() {
         </View>
 
         {/* Spending Trends */}
-        <View className="px-6 mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
+        <View className="px-6 mb-8">
+          <Text className="text-xl font-semibold text-gray-900 mb-4">
             Spending Trends
           </Text>
-          <View className="space-y-4">
-            <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <View style={{ gap: 12 }}>
+            <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center">
-                  <View className="bg-green-100 rounded-full w-10 h-10 items-center justify-center mr-3">
-                    <Ionicons name="trending-down" size={20} color="#10b981" />
+                  <View className="bg-green-100 rounded-full w-11 h-11 items-center justify-center mr-4">
+                    <Ionicons name="trending-down-outline" size={20} color="#10b981" />
                   </View>
                   <View>
-                    <Text className="font-medium text-gray-900">Best Day</Text>
-                    <Text className="text-gray-500 text-sm">Lowest spending</Text>
+                    <Text className="font-medium text-gray-900 text-base">Best Day</Text>
+                    <Text className="text-gray-500 text-sm mt-0.5">Lowest spending</Text>
                   </View>
                 </View>
                 <View className="items-end">
-                  <Text className="font-semibold text-gray-900">
+                  <Text className="font-semibold text-gray-900 text-base">
                     {formatCurrency(Math.min(...dailySpending.map(d => d.amount)), currency)}
                   </Text>
-                  <Text className="text-gray-500 text-sm">
+                  <Text className="text-gray-500 text-sm mt-0.5">
                     {format(dailySpending.find(d => d.amount === Math.min(...dailySpending.map(d => d.amount)))?.date || now, "MMM d")}
                   </Text>
                 </View>
               </View>
             </View>
             
-            <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center">
-                  <View className="bg-red-100 rounded-full w-10 h-10 items-center justify-center mr-3">
-                    <Ionicons name="trending-up" size={20} color="#ef4444" />
+                  <View className="bg-red-100 rounded-full w-11 h-11 items-center justify-center mr-4">
+                    <Ionicons name="trending-up-outline" size={20} color="#ef4444" />
                   </View>
                   <View>
-                    <Text className="font-medium text-gray-900">Highest Day</Text>
-                    <Text className="text-gray-500 text-sm">Most spending</Text>
+                    <Text className="font-medium text-gray-900 text-base">Highest Day</Text>
+                    <Text className="text-gray-500 text-sm mt-0.5">Most spending</Text>
                   </View>
                 </View>
                 <View className="items-end">
-                  <Text className="font-semibold text-gray-900">
+                  <Text className="font-semibold text-gray-900 text-base">
                     {formatCurrency(Math.max(...dailySpending.map(d => d.amount)), currency)}
                   </Text>
-                  <Text className="text-gray-500 text-sm">
+                  <Text className="text-gray-500 text-sm mt-0.5">
                     {format(dailySpending.find(d => d.amount === Math.max(...dailySpending.map(d => d.amount)))?.date || now, "MMM d")}
                   </Text>
                 </View>

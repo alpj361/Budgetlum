@@ -11,11 +11,37 @@ module.exports = {
   theme: {
     // NOTE to AI: You can extend the theme with custom colors or styles here.
     extend: {
-      // For example, you can add a primary or secondary color here.
-      // colors: {
-      //   primary: "#INSERT_VALID_HEX_CODE",
-      //   secondary: "#INSERT_VALID_HEX_CODE",
-      // },
+      colors: {
+        // iOS semantic colors for dark mode support
+        primary: {
+          DEFAULT: "#007AFF", // iOS blue
+          50: "#E6F3FF",
+          100: "#CCE7FF",
+          500: "#007AFF",
+          600: "#0056CC",
+          700: "#003D99",
+        },
+        secondary: {
+          DEFAULT: "#8E8E93", // iOS secondary label
+          50: "#F2F2F7",
+          100: "#E5E5EA",
+          500: "#8E8E93",
+          600: "#636366",
+        },
+        background: {
+          DEFAULT: "#FFFFFF", // System background
+          secondary: "#F2F2F7", // Secondary system background
+        },
+        surface: {
+          DEFAULT: "#FFFFFF", // Card/surface background
+          elevated: "#FFFFFF", // Elevated surface
+        },
+        label: {
+          DEFAULT: "#000000", // Primary label
+          secondary: "#3C3C43", // Secondary label
+          tertiary: "#3C3C4399", // Tertiary label (60% opacity)
+        },
+      },
       fontSize: {
         xs: "10px",
         sm: "12px",
