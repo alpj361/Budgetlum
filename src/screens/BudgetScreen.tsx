@@ -12,9 +12,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useExpenseStore } from "../state/expenseStore";
 import { EXPENSE_CATEGORIES, ExpenseCategory } from "../types/expense";
+import { useSettingsStore } from "../state/settingsStore";
+import { formatCurrency, getCurrencySymbol } from "../utils/currency";
 
 export default function BudgetScreen() {
   const { budgets, setBudget } = useExpenseStore();
+  const currency = useSettingsStore((s) => s.primaryCurrency);
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [newBudgetCategory, setNewBudgetCategory] = useState<ExpenseCategory>(EXPENSE_CATEGORIES[0]);
   const [newBudgetAmount, setNewBudgetAmount] = useState("");
@@ -77,7 +80,7 @@ export default function BudgetScreen() {
                     Total Budget
                   </Text>
                   <Text className="text-2xl font-bold text-gray-900 mt-1">
-                    ${totalBudget.toFixed(2)}
+                    {formatCurrency(totalBudget, currency)}
                   </Text>
                 </View>
                 <View className="items-end">
@@ -85,7 +88,7 @@ export default function BudgetScreen() {
                     Spent
                   </Text>
                   <Text className="text-xl font-bold text-gray-900 mt-1">
-                    ${totalSpent.toFixed(2)}
+                    {formatCurrency(totalSpent, currency)}
                   </Text>
                 </View>
               </View>
@@ -110,8 +113,8 @@ export default function BudgetScreen() {
                 </View>
               </View>
               
-              <Text className="text-gray-500 text-sm text-center">
-                ${(totalBudget - totalSpent).toFixed(2)} remaining
+               <Text className="text-gray-500 text-sm text-center">
+                {formatCurrency(totalBudget - totalSpent, currency)} remaining
               </Text>
             </View>
           </View>
@@ -260,7 +263,7 @@ export default function BudgetScreen() {
                       </View>
                       <View className="items-end">
                         <Text className="font-bold text-gray-900">
-                          ${budget.spent.toFixed(2)} / ${budget.limit.toFixed(2)}
+                          {formatCurrency(budget.spent, currency)} / {formatCurrency(budget.limit, currency)}
                         </Text>
                         <Text 
                           className="text-sm font-medium"
@@ -284,7 +287,7 @@ export default function BudgetScreen() {
                     </View>
                     
                     <Text className="text-gray-500 text-sm text-center">
-                      ${(budget.limit - budget.spent).toFixed(2)} remaining
+                      {formatCurrency(budget.limit - budget.spent, currency)} remaining
                     </Text>
                   </View>
                 );

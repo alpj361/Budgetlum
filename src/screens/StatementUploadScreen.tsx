@@ -6,6 +6,8 @@ import * as FileSystem from "expo-file-system";
 import { useExpenseStore } from "../state/expenseStore";
 import AnimatedPressable from "../components/AnimatedPressable";
 import { processStatementText } from "../utils/statement/processStatement";
+import { useSettingsStore } from "../state/settingsStore";
+import { formatCurrency } from "../utils/currency";
 
 export default function StatementUploadScreen() {
   const [fileName, setFileName] = useState<string | null>(null);
@@ -13,6 +15,7 @@ export default function StatementUploadScreen() {
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<ReturnType<typeof Array> | any[]>([]);
   const { addExpense } = useExpenseStore();
+  const currency = useSettingsStore((s) => s.primaryCurrency);
 
   const pickFile = async () => {
     setError(null);
@@ -83,7 +86,7 @@ export default function StatementUploadScreen() {
                 <View className="bg-white border border-gray-100 rounded-xl p-3 mb-2">
                   <View className="flex-row justify-between items-center">
                     <Text className="text-gray-900 font-medium flex-1 mr-2">{item.description}</Text>
-                    <Text className="text-gray-900 font-semibold">-${Number(item.amount).toFixed(2)}</Text>
+                    <Text className="text-gray-900 font-semibold">-{formatCurrency(Number(item.amount), currency)}</Text>
                   </View>
                   <View className="flex-row justify-between mt-1">
                     <Text className="text-gray-500 text-sm">{item.category}</Text>

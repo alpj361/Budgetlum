@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSettingsStore } from "../state/settingsStore";
+import { formatCurrency } from "../utils/currency";
 
 interface Props {
   totalSpent: number;
@@ -9,6 +11,7 @@ interface Props {
 
 export default function BalanceCard({ totalSpent, totalBudget }: Props) {
   const hasBudget = totalBudget > 0;
+  const currency = useSettingsStore((s) => s.primaryCurrency);
   const usedPct = hasBudget ? Math.min((totalSpent / totalBudget) * 100, 999) : 0;
   const balance = hasBudget ? totalBudget - totalSpent : 0;
   const over = hasBudget && balance < 0;
@@ -23,7 +26,7 @@ export default function BalanceCard({ totalSpent, totalBudget }: Props) {
             {hasBudget ? "Current Balance" : "This Month Spent"}
           </Text>
           <Text className="text-gray-900 text-3xl font-bold mt-1">
-            {hasBudget ? `$${Math.abs(balance).toFixed(2)}` : `$${totalSpent.toFixed(2)}`}
+            {hasBudget ? `${formatCurrency(Math.abs(balance), currency)}` : `${formatCurrency(totalSpent, currency)}`}
           </Text>
           {hasBudget && (
             <Text className={`${over ? "text-red-500" : "text-gray-500"} mt-1`}>
@@ -49,8 +52,8 @@ export default function BalanceCard({ totalSpent, totalBudget }: Props) {
             />
           </View>
           <View className="flex-row justify-between mt-2">
-            <Text className="text-gray-500 text-xs">Spent ${totalSpent.toFixed(2)}</Text>
-            <Text className="text-gray-500 text-xs">Budget ${totalBudget.toFixed(2)}</Text>
+            <Text className="text-gray-500 text-xs">Spent {formatCurrency(totalSpent, currency)}</Text>
+            <Text className="text-gray-500 text-xs">Budget {formatCurrency(totalBudget, currency)}</Text>
           </View>
         </View>
       )}

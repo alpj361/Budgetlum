@@ -16,6 +16,8 @@ import { useExpenseStore } from "../state/expenseStore";
 import { EXPENSE_CATEGORIES, ExpenseCategory } from "../types/expense";
 import { categorizeExpense } from "../utils/aiCategorization";
 import { format } from "date-fns";
+import { useSettingsStore } from "../state/settingsStore";
+import { getCurrencySymbol } from "../utils/currency";
 
 export default function AddExpenseScreen() {
   const [amount, setAmount] = useState("");
@@ -26,6 +28,7 @@ export default function AddExpenseScreen() {
   const navigation = useNavigation<any>();
   
   const { addExpense } = useExpenseStore();
+  const currency = useSettingsStore((s) => s.primaryCurrency);
 
   const handleAddExpense = async () => {
     if (!amount || !description) {
@@ -179,7 +182,7 @@ export default function AddExpenseScreen() {
             <View className="mb-6">
               <Text className="text-gray-700 font-medium mb-2">Amount</Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3">
-                <Text className="text-gray-600 text-lg font-medium mr-2">$</Text>
+                <Text className="text-gray-600 text-lg font-medium mr-2">{getCurrencySymbol(currency)}</Text>
                 <TextInput
                   value={amount}
                   onChangeText={setAmount}

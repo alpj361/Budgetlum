@@ -9,11 +9,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useExpenseStore } from "../state/expenseStore";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { useSettingsStore } from "../state/settingsStore";
+import { formatCurrency } from "../utils/currency";
 
 const { width } = Dimensions.get("window");
 
 export default function InsightsScreen() {
   const { expenses, getTotalSpent, getCategoryInsights } = useExpenseStore();
+  const currency = useSettingsStore((s) => s.primaryCurrency);
   
   const totalSpent = getTotalSpent();
   const categoryInsights = getCategoryInsights();
@@ -62,7 +65,7 @@ export default function InsightsScreen() {
                 <Ionicons name="trending-up" size={20} color="#3b82f6" />
               </View>
               <Text className="text-2xl font-bold text-gray-900">
-                ${totalSpent.toFixed(2)}
+                {formatCurrency(totalSpent, currency)}
               </Text>
               <Text className="text-gray-500 text-sm">Total Spent</Text>
             </View>
@@ -72,7 +75,7 @@ export default function InsightsScreen() {
                 <Ionicons name="calendar" size={20} color="#10b981" />
               </View>
               <Text className="text-2xl font-bold text-gray-900">
-                ${avgDailySpending.toFixed(2)}
+                {formatCurrency(avgDailySpending, currency)}
               </Text>
               <Text className="text-gray-500 text-sm">Daily Average</Text>
             </View>
@@ -100,7 +103,7 @@ export default function InsightsScreen() {
                     </View>
                     <View className="items-end">
                       <Text className="font-semibold text-gray-900">
-                        ${insight.totalSpent.toFixed(2)}
+                        {formatCurrency(insight.totalSpent, currency)}
                       </Text>
                       <Text className="text-gray-500 text-sm">
                         {insight.percentage.toFixed(1)}%
@@ -179,7 +182,7 @@ export default function InsightsScreen() {
                 </View>
                 <View className="items-end">
                   <Text className="font-semibold text-gray-900">
-                    ${Math.min(...dailySpending.map(d => d.amount)).toFixed(2)}
+                    {formatCurrency(Math.min(...dailySpending.map(d => d.amount)), currency)}
                   </Text>
                   <Text className="text-gray-500 text-sm">
                     {format(dailySpending.find(d => d.amount === Math.min(...dailySpending.map(d => d.amount)))?.date || now, "MMM d")}
@@ -201,7 +204,7 @@ export default function InsightsScreen() {
                 </View>
                 <View className="items-end">
                   <Text className="font-semibold text-gray-900">
-                    ${Math.max(...dailySpending.map(d => d.amount)).toFixed(2)}
+                    {formatCurrency(Math.max(...dailySpending.map(d => d.amount)), currency)}
                   </Text>
                   <Text className="text-gray-500 text-sm">
                     {format(dailySpending.find(d => d.amount === Math.max(...dailySpending.map(d => d.amount)))?.date || now, "MMM d")}

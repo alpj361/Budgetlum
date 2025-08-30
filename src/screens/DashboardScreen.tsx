@@ -11,12 +11,15 @@ import { format } from "date-fns";
 import BalanceCard from "../components/BalanceCard";
 import { useNavigation } from "@react-navigation/native";
 import AnimatedPressable from "../components/AnimatedPressable";
+import { useSettingsStore } from "../state/settingsStore";
+import { formatCurrency } from "../utils/currency";
 
 export default function DashboardScreen() {
   const { expenses, getTotalSpent, getCategoryInsights, budgets } = useExpenseStore();
   const navigation = useNavigation<any>();
   
   const totalSpent = getTotalSpent();
+  const currency = useSettingsStore((s) => s.primaryCurrency);
   const recentExpenses = expenses.slice(0, 5);
   const categoryInsights = getCategoryInsights().slice(0, 3);
   
@@ -90,9 +93,9 @@ export default function DashboardScreen() {
                     </Text>
                   </View>
                   <View className="items-end">
-                    <Text className="font-semibold text-gray-900">
-                      ${insight.totalSpent.toFixed(2)}
-                    </Text>
+                     <Text className="font-semibold text-gray-900">
+                       {formatCurrency(insight.totalSpent, currency)}
+                     </Text>
                     <Text className="text-gray-500 text-sm">
                       {insight.percentage.toFixed(0)}%
                     </Text>
@@ -133,7 +136,7 @@ export default function DashboardScreen() {
                       </View>
                     </View>
                     <Text className="font-semibold text-gray-900">
-                      -${expense.amount.toFixed(2)}
+                      -{formatCurrency(expense.amount, currency)}
                     </Text>
                   </View>
                 </View>
