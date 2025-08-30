@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Expense, Budget, EXPENSE_CATEGORIES } from "../types/expense";
-import { mockExpenses, mockBudgets } from "../utils/mockData";
 
 interface ExpenseStore {
   expenses: Expense[];
@@ -16,6 +15,9 @@ interface ExpenseStore {
   // Budget actions
   setBudget: (category: string, limit: number, period: "monthly" | "weekly" | "yearly") => void;
   updateBudgetSpent: () => void;
+
+  // Maintenance
+  resetAll: () => Promise<void>;
   
   // Computed values
   getTotalSpent: (period?: "month" | "week" | "year") => number;
@@ -33,11 +35,13 @@ const categoryColors = [
   "#06b6d4", "#84cc16", "#f97316", "#ec4899", "#6b7280"
 ];
 
+const STORAGE_KEY = "expense-store";
+
 export const useExpenseStore = create<ExpenseStore>()(
   persist(
     (set, get) => ({
-      expenses: mockExpenses,
-      budgets: mockBudgets,
+      expenses: [],
+      budgets: [],
 
       addExpense: (expense) => {
         const newExpense: Expense = {
@@ -99,6 +103,11 @@ export const useExpenseStore = create<ExpenseStore>()(
             ),
           })),
         }));
+      },
+
+      resetAll: async () => {
+        set({ expenses: [], budgets: [] });
+        await AsyncStorage.removeItem(STORAGE_KEY);
       },
 
       getTotalSpent: (period = "month") => {
@@ -172,8 +181,13 @@ export const useExpenseStore = create<ExpenseStore>()(
       },
     }),
     {
-      name: "expense-store",
+      name: STORAGE_KEY,
       storage: createJSONStorage(() => AsyncStorage),
+      version: 2,
+      migrate: async (_persistedState, _version) => {
+        // wipe to start from zero
+        return { expenses: [], budgets: [] } as any;
+      },
       partialize: (state) => ({
         expenses: state.expenses,
         budgets: state.budgets,
