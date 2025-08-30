@@ -3,7 +3,6 @@ import {
   View,
   Text,
   ScrollView,
-  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,7 +11,6 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { useSettingsStore } from "../state/settingsStore";
 import { formatCurrency } from "../utils/currency";
 
-const { width } = Dimensions.get("window");
 
 export default function InsightsScreen() {
   const { expenses, getTotalSpent, getCategoryInsights } = useExpenseStore();
@@ -131,8 +129,8 @@ export default function InsightsScreen() {
             Daily Spending This Month
           </Text>
           <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row items-end space-x-1" style={{ width: Math.max(width - 80, dailySpending.length * 12) }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 24, paddingLeft: 4 }}>
+              <View className="flex-row items-end space-x-1">
                 {dailySpending.map((day, index) => {
                   const height = Math.max((day.amount / maxDailySpending) * 90, 4);
                   const isToday = day.date.toDateString() === now.toDateString();
