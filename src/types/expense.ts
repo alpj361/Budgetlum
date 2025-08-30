@@ -1,14 +1,21 @@
+import { TOP_CATEGORY_LABELS } from "./categories";
+
 export interface Expense {
   id: string;
   amount: number;
   description: string;
+  // Display label (Spanish). Kept for backward compatibility.
   category: string;
+  // New taxonomy IDs
+  categoryId?: string;
+  subcategoryId?: string;
   date: string;
   isRecurring?: boolean;
   receiptImage?: string;
 }
 
 export interface Budget {
+  // Display label for now; taxonomy IDs can be added later
   category: string;
   limit: number;
   spent: number;
@@ -22,17 +29,7 @@ export interface CategoryInsight {
   color: string;
 }
 
-export const EXPENSE_CATEGORIES = [
-  "Food & Dining",
-  "Transportation",
-  "Shopping",
-  "Entertainment",
-  "Bills & Utilities",
-  "Healthcare",
-  "Travel",
-  "Education",
-  "Groceries",
-  "Other"
-] as const;
+// Spanish top-level categories for selection and insights
+export const EXPENSE_CATEGORIES: string[] = TOP_CATEGORY_LABELS;
 
-export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
+export type ExpenseCategory = string;

@@ -4,6 +4,7 @@ import { parseQif } from "./parseQif";
 import { mapColumnsWithAI } from "./aiMapping";
 import { categorizeDescriptionsBatch } from "../aiCategorization";
 import { Expense } from "../../types/expense";
+import { findCategoryByLabel, getLabelsFromIds } from "../../types/categories";
 
 const tryParseDate = (raw: string): string => {
   const t = Date.parse(raw);
@@ -45,12 +46,26 @@ export const processStatementText = async (filename: string, text: string): Prom
   }
 
   const categories = await categorizeDescriptionsBatch(drafts.map((d) => d.description));
-  const expenses: Expense[] = drafts.map((d, i) => ({
-    id: `${Date.now()}_${i}_${Math.random().toString(36).substring(2, 8)}`,
-    amount: d.amount,
-    description: d.description,
-    category: categories[i] || "Other",
-    date: d.date,
-  }));
+  const expenses: Expense[] = drafts.map((d, i) => {
+    const label = categories[i] || "Otros";
+    const top = findCategoryByLabel(label);
+    let categoryId: string | undefined = undefined;
+    let subcategoryId: string | undefined = undefined;
+    if (top) {
+      categoryId = top.id;
+    } else {
+      categoryId = "otros";
+      subcategoryId = "sin_especificar";
+    }
+    return {
+      id: `${Date.now()}_${i}_${Math.random().toString(36).substring(2, 8)}`,
+      amount: d.amount,
+      description: d.description,
+      category: label,
+      categoryId,
+      subcategoryId,
+      date: d.date,
+    } as any;
+  });
   return expenses;
 };

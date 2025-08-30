@@ -3,27 +3,27 @@ import { EXPENSE_CATEGORIES, ExpenseCategory } from "../types/expense";
 
 export const categorizeExpense = async (description: string): Promise<ExpenseCategory> => {
   try {
-    const prompt = `You categorize expenses. Categories: ${EXPENSE_CATEGORIES.join(", ")}\nReturn ONLY the category.\nDescription: "${description}"\nCategory:`;
+    const prompt = `Eres un asistente que categoriza gastos. Categorías: ${EXPENSE_CATEGORIES.join(", ")}\nDevuelve SOLO la categoría exacta.\nDescripción: "${description}"\nCategoría:`;
     const response = await getOpenAIChatResponse(prompt);
     const category = response.content.trim();
-    if (EXPENSE_CATEGORIES.includes(category as ExpenseCategory)) return category as ExpenseCategory;
-    return "Other";
+    if ((EXPENSE_CATEGORIES as string[]).includes(category)) return category as ExpenseCategory;
+    return "Otros";
   } catch {
-    return "Other";
+    return "Otros";
   }
 };
 
 export const categorizeDescriptionsBatch = async (descriptions: string[]): Promise<ExpenseCategory[]> => {
   try {
-    const prompt = `Categorize each description to one of: ${EXPENSE_CATEGORIES.join(", ")}.\nReturn ONLY a JSON array of category strings with the same order.\nDescriptions: ${JSON.stringify(descriptions)}`;
+    const prompt = `Clasifica cada descripción en una de: ${EXPENSE_CATEGORIES.join(", ")}.\nDevuelve SOLO un arreglo JSON de cadenas con el mismo orden.\nDescripciones: ${JSON.stringify(descriptions)}`;
     const res = await getOpenAIChatResponse(prompt);
     const arr = JSON.parse(res.content.trim());
     if (Array.isArray(arr)) {
-      return arr.map((c) => (EXPENSE_CATEGORIES.includes(c) ? (c as ExpenseCategory) : "Other"));
+      return arr.map((c) => ((EXPENSE_CATEGORIES as string[]).includes(c) ? (c as ExpenseCategory) : "Otros"));
     }
-    return descriptions.map(() => "Other");
+    return descriptions.map(() => "Otros");
   } catch {
-    return descriptions.map(() => "Other");
+    return descriptions.map(() => "Otros");
   }
 };
 
@@ -34,23 +34,23 @@ export const extractExpenseFromReceipt = async (receiptText: string): Promise<{
 }> => {
   try {
     const prompt = `
-You are a receipt parsing assistant. Extract expense information from this receipt text and return it as JSON.
+Eres un asistente que extrae datos de recibos. Devuelve JSON.
 
-Receipt text: "${receiptText}"
+Texto del recibo: "${receiptText}"
 
-Extract:
-- amount: The total amount (number only, no currency symbol)
-- description: A brief description of what was purchased
-- category: Choose from these categories: ${EXPENSE_CATEGORIES.join(", ")}
+Extrae:
+- amount: Monto total (número, sin símbolo)
+- description: Breve descripción de la compra
+- category: Elige entre: ${EXPENSE_CATEGORIES.join(", ")}
 
-Return ONLY valid JSON in this format:
+Devuelve SOLO JSON válido con este formato:
 {
   "amount": 25.99,
-  "description": "Grocery shopping",
-  "category": "Groceries"
+  "description": "Compra supermercado",
+  "category": "Alimentación"
 }
 
-If you cannot extract the information, return null for that field.
+Si no puedes extraer un campo, colócalo en null.
 
 JSON:`;
 
@@ -58,23 +58,19 @@ JSON:`;
     
     try {
       const parsed = JSON.parse(response.content.trim());
-      
       // Validate the category
-      if (parsed.category && !EXPENSE_CATEGORIES.includes(parsed.category)) {
-        parsed.category = "Other";
+      if (parsed.category && !(EXPENSE_CATEGORIES as string[]).includes(parsed.category)) {
+        parsed.category = "Otros";
       }
-      
       return {
         amount: parsed.amount ? parseFloat(parsed.amount) : undefined,
         description: parsed.description || undefined,
-        category: parsed.category || "Other",
+        category: parsed.category || "Otros",
       };
-    } catch (parseError) {
-      console.error("Error parsing AI response:", parseError);
+    } catch {
       return {};
     }
-  } catch (error) {
-    console.error("Error extracting expense from receipt:", error);
+  } catch {
     return {};
   }
 };

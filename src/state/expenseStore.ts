@@ -183,9 +183,9 @@ export const useExpenseStore = create<ExpenseStore>()(
     {
       name: STORAGE_KEY,
       storage: createJSONStorage(() => AsyncStorage),
-      version: 2,
+      version: 3,
       migrate: async (_persistedState, _version) => {
-        // wipe to start from zero
+        // Migration v3: reshape categories to Spanish taxonomy; safest is to clear old data
         return { expenses: [], budgets: [] } as any;
       },
       partialize: (state) => ({
