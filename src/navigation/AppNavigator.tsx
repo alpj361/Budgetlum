@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HeaderGear from "../components/HeaderGear";
+import AnimatedPressable from "../components/AnimatedPressable";
 
 import DashboardScreen from "../screens/DashboardScreen";
 import AddExpenseScreen from "../screens/AddExpenseScreen";
@@ -69,8 +70,18 @@ function MainTabs() {
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Settings" component={require("../screens/SettingsScreen").default} options={{ title: "Configuración", presentation: "formSheet" }} />
+      <Stack.Navigator initialRouteName="MainTabs">
+        <Stack.Screen
+          name="Settings"
+          component={require("../screens/SettingsScreen").default}
+          options={({ navigation }) => ({
+            title: "Configuración",
+            presentation: "formSheet",
+            headerLeft: () => (
+              <HeaderBack navigation={navigation} />
+            ),
+          })}
+        />
         <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen
           name="StatementUpload"
@@ -81,3 +92,12 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+function HeaderBack({ navigation }: any) {
+  return (
+    <AnimatedPressable className="ml-1" onPress={() => navigation.goBack()}>
+      <Ionicons name="chevron-back" size={24} color="#1f2937" />
+    </AnimatedPressable>
+  );
+}
+
