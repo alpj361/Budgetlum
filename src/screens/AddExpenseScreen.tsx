@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, TextInput } from "react-native";
+import { View, Text, ScrollView, TextInput, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AnimatedPressable from "../components/AnimatedPressable";
 import CategoryPickerModal from "../components/CategoryPickerModal";
@@ -26,6 +26,13 @@ export default function AddExpenseScreen() {
   const { addExpense } = useExpenseStore();
   const currency = useSettingsStore((s) => s.primaryCurrency);
 
+  // Bulk notes state
+  const [bulkNotes, setBulkNotes] = useState("");
+  const [reviewVisible, setReviewVisible] = useState(false);
+  const [reviewItems, setReviewItems] = useState<Array<{ description: string; amount: string; categoryId?: string; subcategoryId?: string; suggested?: { categoryId?: string; subcategoryId?: string } }>>([]);
+  const [bulkPickerVisible, setBulkPickerVisible] = useState(false);
+  const [bulkPickerIndex, setBulkPickerIndex] = useState<number | null>(null);
+
   // Heuristic suggestion updates as user types
   useEffect(() => {
     const s = suggestCategory(description);
@@ -40,7 +47,6 @@ export default function AddExpenseScreen() {
 
   const handleAddExpense = async () => {
     if (!amount || !description) {
-      // Communicate via UI: simply ignore for now (no alerts by spec), or we can show inline error state.
       return;
     }
     const numAmount = parseFloat(amount);
@@ -83,11 +89,81 @@ export default function AddExpenseScreen() {
       date: new Date().toISOString(),
     } as any);
 
-    // Reset form
     setAmount("");
     setDescription("");
     setSelection({});
     setSuggested(null);
+  };
+
+  // Helpers for bulk parsing
+  const toTitle = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  const normalizeVendor = (raw: string) => {
+    const base = toTitle(raw);
+    const map: Record<string, string> = {
+      uber: "Uber",
+      didi: "DiDi",
+      cabify: "Cabify",
+      mcdonalds: "McDonalds",
+      starbucks: "Starbucks",
+      netflix: "Netflix",
+      spotify: "Spotify",
+      walmart: "Walmart",
+    };
+    const key = base.replace(/\s+/g, "").toLowerCase();
+    for (const k of Object.keys(map)) {
+      if (key.includes(k)) return map[k];
+    }
+    return base;
+  };
+
+  const parseNotesToItems = (text: string) => {
+    const result: Array<{ description: string; amount: string; categoryId?: string; subcategoryId?: string; suggested?: { categoryId?: string; subcategoryId?: string } }> = [];
+    if (!text || !text.trim()) return result;
+    const pattern = /([^\d\n]+?)\s*(-?\d+(?:[\.,]\d{1,2})?)/g; // description + number
+    let m: RegExpExecArray | null;
+    while ((m = pattern.exec(text)) !== null) {
+      const desc = normalizeVendor(m[1]);
+      const amt = (m[2] || "").replace(",", ".");
+      if (!desc || !amt) continue;
+      const sugg = suggestCategory(desc);
+      result.push({ description: desc, amount: amt, suggested: sugg || undefined, categoryId: sugg?.categoryId, subcategoryId: sugg?.subcategoryId });
+    }
+    // Fallback: try line by line if nothing matched
+    if (result.length === 0) {
+      const lines = text.split(/\n+/);
+      for (const line of lines) {
+        const mm = /([^\d]+?)\s*(-?\d+(?:[\.,]\d{1,2})?)/.exec(line);
+        if (mm) {
+          const desc = normalizeVendor(mm[1]);
+          const amt = (mm[2] || "").replace(",", ".");
+          const sugg = suggestCategory(desc);
+          result.push({ description: desc, amount: amt, suggested: sugg || undefined, categoryId: sugg?.categoryId, subcategoryId: sugg?.subcategoryId });
+        }
+      }
+    }
+    return result;
+  };
+
+  const confirmBulk = () => {
+    reviewItems.forEach((item) => {
+      const num = parseFloat(item.amount);
+      if (isNaN(num) || num <= 0) return;
+      const catId = item.categoryId || item.suggested?.categoryId;
+      const subId = item.subcategoryId || item.suggested?.subcategoryId;
+      const labels = catId ? getLabelsFromIds(catId, subId) : { categoryLabel: "Otros", subcategoryLabel: undefined };
+      const categoryLabel = labels.subcategoryLabel || labels.categoryLabel || "Otros";
+      addExpense({
+        amount: num,
+        description: item.description,
+        category: categoryLabel,
+        categoryId: catId,
+        subcategoryId: subId,
+        date: new Date().toISOString(),
+      } as any);
+    });
+    setReviewVisible(false);
+    setBulkNotes("");
+    setReviewItems([]);
   };
 
   if (showCamera) {
@@ -150,7 +226,7 @@ export default function AddExpenseScreen() {
           </View>
 
           {/* Form */}
-          <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
+          <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
             {/* Amount */}
             <View className="mb-6">
               <Text className="text-gray-700 font-medium mb-2">Amount</Text>
@@ -183,12 +259,37 @@ export default function AddExpenseScreen() {
             </View>
 
             {/* Date */}
-            <View className="mb-6">
+            <View>
               <Text className="text-gray-700 font-medium mb-2">Date</Text>
               <View className="bg-gray-50 rounded-xl px-4 py-3">
                 <Text className="text-gray-900">{format(new Date(), "MMMM d, yyyy")}</Text>
               </View>
             </View>
+          </View>
+
+          {/* Bulk Notes Entry */}
+          <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+            <Text className="text-gray-900 font-semibold text-base mb-2">Agregar desde notas</Text>
+            <Text className="text-gray-600 text-sm mb-3">Ejemplo: Uber 50\nMcdonalds 40\nXXX 30</Text>
+            <TextInput
+              value={bulkNotes}
+              onChangeText={setBulkNotes}
+              placeholder="Pega tus notas aquí"
+              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900"
+              multiline
+              numberOfLines={4}
+            />
+            <AnimatedPressable
+              className="mt-4 bg-blue-600 rounded-xl py-3 items-center"
+              onPress={() => {
+                const items = parseNotesToItems(bulkNotes);
+                if (items.length === 0) return;
+                setReviewItems(items);
+                setReviewVisible(true);
+              }}
+            >
+              <Text className="text-white font-semibold">Agregar</Text>
+            </AnimatedPressable>
           </View>
 
           {/* Add Button */}
@@ -200,6 +301,71 @@ export default function AddExpenseScreen() {
 
       {/* Category Picker */}
       <CategoryPickerModal visible={showPicker} onClose={() => setShowPicker(false)} onSelect={(sel) => setSelection(sel)} />
+
+      {/* Bulk Review Modal */}
+      <Modal visible={reviewVisible} transparent animationType="fade" onRequestClose={() => setReviewVisible(false)}>
+        <View className="flex-1 bg-black/40 items-center justify-end">
+          <View className="bg-white w-full rounded-t-3xl p-6 max-h-[80%]">
+            <Text className="text-lg font-semibold text-gray-900 mb-1">Revisar gastos detectados</Text>
+            <Text className="text-gray-600 mb-4">Corrige nombres, montos o categorías si es necesario</Text>
+            <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+              {reviewItems.map((it, idx) => {
+                const labels = it.categoryId ? getLabelsFromIds(it.categoryId, it.subcategoryId) : it.suggested?.categoryId ? getLabelsFromIds(it.suggested.categoryId!, it.suggested.subcategoryId) : { categoryLabel: "Otros" } as any;
+                const catLabel = labels.subcategoryLabel || labels.categoryLabel || "Seleccionar";
+                return (
+                  <View key={idx} className="mb-4">
+                    <View className="bg-gray-50 rounded-xl p-3">
+                      <View className="flex-row" style={{ gap: 12 }}>
+                        <View className="flex-1">
+                          <Text className="text-gray-700 text-xs mb-1">Descripción</Text>
+                          <TextInput value={it.description} onChangeText={(t) => {
+                            const next = [...reviewItems]; next[idx] = { ...next[idx], description: t }; setReviewItems(next);
+                          }} className="bg-white rounded-lg px-3 py-2 text-gray-900" />
+                        </View>
+                        <View style={{ width: 110 }}>
+                          <Text className="text-gray-700 text-xs mb-1">Monto</Text>
+                          <TextInput value={it.amount} keyboardType="decimal-pad" onChangeText={(t) => {
+                            const next = [...reviewItems]; next[idx] = { ...next[idx], amount: t }; setReviewItems(next);
+                          }} className="bg-white rounded-lg px-3 py-2 text-gray-900" />
+                        </View>
+                      </View>
+                      <View className="mt-3">
+                        <Text className="text-gray-700 text-xs mb-1">Categoría</Text>
+                        <AnimatedPressable className="bg-white rounded-lg px-3 py-2 flex-row items-center justify-between" onPress={() => { setBulkPickerIndex(idx); setBulkPickerVisible(true); }}>
+                          <Text className="text-gray-900">{catLabel}</Text>
+                          <Ionicons name="chevron-forward" size={18} color="#6b7280" />
+                        </AnimatedPressable>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+            <View className="flex-row" style={{ gap: 12 }}>
+              <AnimatedPressable className="flex-1 py-4 rounded-2xl border border-gray-200" onPress={() => setReviewVisible(false)}>
+                <Text className="text-center font-medium text-gray-700 text-base">Cancelar</Text>
+              </AnimatedPressable>
+              <AnimatedPressable className="flex-1 py-4 rounded-2xl bg-blue-600" onPress={confirmBulk}>
+                <Text className="text-center font-medium text-white text-base">Confirmar</Text>
+              </AnimatedPressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bulk Category Picker */}
+      <CategoryPickerModal
+        visible={bulkPickerVisible}
+        onClose={() => { setBulkPickerVisible(false); setBulkPickerIndex(null); }}
+        onSelect={(sel) => {
+          if (bulkPickerIndex === null) return;
+          const next = [...reviewItems];
+          next[bulkPickerIndex] = { ...next[bulkPickerIndex], categoryId: sel.categoryId, subcategoryId: sel.subcategoryId };
+          setReviewItems(next);
+          setBulkPickerVisible(false);
+          setBulkPickerIndex(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
