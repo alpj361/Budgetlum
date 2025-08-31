@@ -11,6 +11,7 @@ import AddExpenseScreen from "../screens/AddExpenseScreen";
 import InsightsScreen from "../screens/InsightsScreen";
 import BudgetScreen from "../screens/BudgetScreen";
 import StatementUploadScreen from "../screens/StatementUploadScreen";
+import NotesBulkScreen from "../screens/NotesBulkScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -87,6 +88,11 @@ export default function AppNavigator() {
           name="StatementUpload"
           component={StatementUploadScreen}
           options={{ title: "Upload Statement", presentation: "formSheet" }}
+        />
+      <Stack.Screen
+          name="NotesBulk"
+          component={NotesBulkScreen}
+          options={{ title: "Add From Notes", presentation: "formSheet" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

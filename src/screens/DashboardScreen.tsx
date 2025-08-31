@@ -50,9 +50,10 @@ export default function DashboardScreen() {
           <Text className="text-xl font-semibold text-gray-900 mb-4">
             Quick Actions
           </Text>
-            <View className="flex-row" style={{ gap: 12 }}>
+            <View className="flex-row" style={{ gap: 12, flexWrap: "wrap" }}>
             <AnimatedPressable 
-              className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+              style={{ width: "48%" }}
               onPress={() => navigation.navigate("Add")}
             >
               <View className="bg-green-100 rounded-full w-11 h-11 items-center justify-center mb-4">
@@ -63,7 +64,8 @@ export default function DashboardScreen() {
             </AnimatedPressable>
             
             <AnimatedPressable 
-              className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+              style={{ width: "48%" }}
               onPress={() => navigation.navigate("StatementUpload")}
             >
               <View className="bg-blue-100 rounded-full w-11 h-11 items-center justify-center mb-4">
@@ -71,6 +73,18 @@ export default function DashboardScreen() {
               </View>
               <Text className="font-semibold text-gray-900 text-base">Upload Statement</Text>
               <Text className="text-gray-500 text-sm mt-1">Auto-detect</Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable 
+              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+              style={{ width: "48%" }}
+              onPress={() => navigation.navigate("NotesBulk")}
+            >
+              <View className="bg-purple-100 rounded-full w-11 h-11 items-center justify-center mb-4">
+                <Ionicons name="create-outline" size={20} color="#8b5cf6" />
+              </View>
+              <Text className="font-semibold text-gray-900 text-base">Add From Notes</Text>
+              <Text className="text-gray-500 text-sm mt-1">Paste and review</Text>
             </AnimatedPressable>
           </View>
         </View>

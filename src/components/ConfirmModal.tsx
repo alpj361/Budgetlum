@@ -2,6 +2,7 @@ import React from "react";
 import { Modal, View, Text } from "react-native";
 import AnimatedPressable from "./AnimatedPressable";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Props {
   visible: boolean;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function ConfirmModal({ visible, title, message, confirmLabel = "Eliminar", cancelLabel = "Cancelar", onConfirm, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View 
@@ -25,15 +27,16 @@ export default function ConfirmModal({ visible, title, message, confirmLabel = "
           entering={SlideInDown.springify().damping(20).stiffness(300)} 
           exiting={SlideOutDown.springify().damping(20).stiffness(300)}
           className="bg-white w-full rounded-t-3xl p-6"
+          style={{ paddingBottom: Math.max(16, insets.bottom + 12) }}
         >
           <Text className="text-xl font-semibold text-gray-900 mb-2">{title}</Text>
           {!!message && <Text className="text-gray-600 mb-6 text-base">{message}</Text>}
           <View className="flex-row" style={{ gap: 12 }}>
             <AnimatedPressable onPress={onClose} className="flex-1 py-4 rounded-2xl border border-gray-200">
-              <Text className="text-center font-medium text-gray-700 text-base">{cancelLabel}</Text>
+              <Text className="text-center font-semibold text-gray-800 text-base">{cancelLabel}</Text>
             </AnimatedPressable>
             <AnimatedPressable onPress={() => { onClose(); onConfirm(); }} className="flex-1 py-4 rounded-2xl bg-red-600">
-              <Text className="text-center font-medium text-white text-base">{confirmLabel}</Text>
+              <Text className="text-center font-semibold text-white text-base">{confirmLabel}</Text>
             </AnimatedPressable>
           </View>
         </Animated.View>
