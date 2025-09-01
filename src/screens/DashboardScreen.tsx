@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useExpenseStore } from "../state/expenseStore";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import BalanceCard from "../components/BalanceCard";
 import { useNavigation } from "@react-navigation/native";
 import AnimatedPressable from "../components/AnimatedPressable";
@@ -32,12 +33,8 @@ export default function DashboardScreen() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-6 pt-2 pb-8">
-          <Text className="text-3xl font-bold text-gray-900 mb-2">
-            Good morning! 👋
-          </Text>
-          <Text className="text-gray-600 text-base">
-            Here is your spending overview
-          </Text>
+          <Text className="text-3xl font-bold text-gray-900 mb-2">¡Buenos días! 👋</Text>
+          <Text className="text-gray-600 text-base">Aquí tienes un resumen de tus gastos</Text>
         </View>
 
         {/* Balance Card */}
@@ -47,9 +44,7 @@ export default function DashboardScreen() {
 
         {/* Quick Actions */}
         <View className="px-6 mb-8">
-          <Text className="text-xl font-semibold text-gray-900 mb-4">
-            Quick Actions
-          </Text>
+          <Text className="text-xl font-semibold text-gray-900 mb-4">Acciones rápidas</Text>
             <View className="flex-row" style={{ gap: 12, flexWrap: "wrap" }}>
             <AnimatedPressable 
               className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
@@ -59,8 +54,8 @@ export default function DashboardScreen() {
               <View className="bg-green-100 rounded-full w-11 h-11 items-center justify-center mb-4">
                 <Ionicons name="add-outline" size={20} color="#10b981" />
               </View>
-              <Text className="font-semibold text-gray-900 text-base">Add Expense</Text>
-              <Text className="text-gray-500 text-sm mt-1">Manual entry</Text>
+              <Text className="font-semibold text-gray-900 text-base">Agregar gasto</Text>
+              <Text className="text-gray-500 text-sm mt-1">Ingreso manual</Text>
             </AnimatedPressable>
             
             <AnimatedPressable 
@@ -71,8 +66,8 @@ export default function DashboardScreen() {
               <View className="bg-blue-100 rounded-full w-11 h-11 items-center justify-center mb-4">
                 <Ionicons name="document-text-outline" size={20} color="#3b82f6" />
               </View>
-              <Text className="font-semibold text-gray-900 text-base">Upload Statement</Text>
-              <Text className="text-gray-500 text-sm mt-1">Auto-detect</Text>
+              <Text className="font-semibold text-gray-900 text-base">Subir estado</Text>
+              <Text className="text-gray-500 text-sm mt-1">Detección automática</Text>
             </AnimatedPressable>
 
             <AnimatedPressable 
@@ -83,8 +78,8 @@ export default function DashboardScreen() {
               <View className="bg-purple-100 rounded-full w-11 h-11 items-center justify-center mb-4">
                 <Ionicons name="create-outline" size={20} color="#8b5cf6" />
               </View>
-              <Text className="font-semibold text-gray-900 text-base">Add From Notes</Text>
-              <Text className="text-gray-500 text-sm mt-1">Paste and review</Text>
+              <Text className="font-semibold text-gray-900 text-base">Agregar desde notas</Text>
+              <Text className="text-gray-500 text-sm mt-1">Pegar y revisar</Text>
             </AnimatedPressable>
           </View>
         </View>
@@ -92,9 +87,7 @@ export default function DashboardScreen() {
         {/* Top Categories */}
         {categoryInsights.length > 0 && (
           <View className="px-6 mb-8">
-            <Text className="text-xl font-semibold text-gray-900 mb-4">
-              Top Categories
-            </Text>
+            <Text className="text-xl font-semibold text-gray-900 mb-4">Categorías principales</Text>
             <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               {categoryInsights.map((insight, index) => (
                 <View key={insight.category} className={`flex-row items-center justify-between ${index < categoryInsights.length - 1 ? "mb-5" : ""}`}>
@@ -125,11 +118,9 @@ export default function DashboardScreen() {
         {recentExpenses.length > 0 && (
           <View className="px-6 mb-8">
             <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-semibold text-gray-900">
-                Recent Expenses
-              </Text>
-               <AnimatedPressable onPress={() => navigation.navigate("Add")}>
-                <Text className="text-blue-600 font-medium text-base">Add</Text>
+              <Text className="text-xl font-semibold text-gray-900">Gastos recientes</Text>
+              <AnimatedPressable onPress={() => navigation.navigate("Add")}>
+                <Text className="text-blue-600 font-medium text-base">Agregar</Text>
               </AnimatedPressable>
             </View>
             <View className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -166,9 +157,7 @@ export default function DashboardScreen() {
                             {expense.category}
                           </Text>
                           <Text className="text-gray-400 text-sm mx-2">•</Text>
-                          <Text className="text-gray-500 text-sm">
-                            {format(new Date(expense.date), "MMM d")}
-                          </Text>
+                          <Text className="text-gray-500 text-sm">{format(new Date(expense.date), "d 'de' MMM")}</Text>
                         </View>
                       </View>
                       <View className="items-end">
@@ -190,14 +179,10 @@ export default function DashboardScreen() {
             <View className="bg-gray-100 rounded-full w-16 h-16 items-center justify-center mb-4">
               <Ionicons name="receipt-outline" size={32} color="#6b7280" />
             </View>
-            <Text className="text-lg font-semibold text-gray-900 mb-2">
-              No expenses yet
-            </Text>
-            <Text className="text-gray-500 text-center mb-6">
-              Start tracking your expenses by adding your first transaction
-            </Text>
+            <Text className="text-lg font-semibold text-gray-900 mb-2">Aún no hay gastos</Text>
+            <Text className="text-gray-500 text-center mb-6">Comienza a registrar tus gastos agregando tu primera transacción</Text>
             <AnimatedPressable className="bg-blue-600 rounded-xl px-6 py-3" onPress={() => navigation.navigate("Add")}>
-              <Text className="text-white font-semibold">Add First Expense</Text>
+              <Text className="text-white font-semibold">Agregar primer gasto</Text>
             </AnimatedPressable>
           </View>
         )}

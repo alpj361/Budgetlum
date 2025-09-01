@@ -9,6 +9,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useExpenseStore } from "../state/expenseStore";
 import { categorizeExpense } from "../utils/aiCategorization";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { useSettingsStore } from "../state/settingsStore";
 import { getCurrencySymbol } from "../utils/currency";
 import { getLabelsFromIds, findCategoryByLabel } from "../types/categories";
@@ -128,25 +129,32 @@ export default function AddExpenseScreen() {
         <View className="p-6">
           {/* Header */}
           <View className="mb-8">
-            <Text className="text-2xl font-bold text-gray-900 mb-2">Add New Expense</Text>
-            <Text className="text-gray-600">Track your spending manually or scan a receipt</Text>
+            <Text className="text-2xl font-bold text-gray-900 mb-2">Agregar nuevo gasto</Text>
+            <Text className="text-gray-600">Registra tus gastos manualmente o escanea un recibo</Text>
           </View>
 
           {/* Quick Actions */}
-          <View className="flex-row space-x-4 mb-8">
-            <AnimatedPressable className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <View className="flex-row mb-8" style={{ gap: 12, flexWrap: "wrap" }}>
+            <AnimatedPressable className="bg-white rounded-xl p-4 shadow-sm border border-gray-100" style={{ width: "48%" }}>
               <View className="bg-green-100 rounded-full w-10 h-10 items-center justify-center mb-3">
                 <Ionicons name="create-outline" size={20} color="#10b981" />
               </View>
-              <Text className="font-medium text-gray-900">Manual Entry</Text>
-              <Text className="text-gray-500 text-sm">Fill details below</Text>
+              <Text className="font-medium text-gray-900">Ingreso manual</Text>
+              <Text className="text-gray-500 text-sm">Completa los datos abajo</Text>
             </AnimatedPressable>
-            <AnimatedPressable className="flex-1 bg-white rounded-xl p-4 shadow-sm border border-gray-100" onPress={() => navigation.navigate("StatementUpload")}>
+            <AnimatedPressable className="bg-white rounded-xl p-4 shadow-sm border border-gray-100" style={{ width: "48%" }} onPress={() => navigation.navigate("StatementUpload")}>
               <View className="bg-blue-100 rounded-full w-10 h-10 items-center justify-center mb-3">
                 <Ionicons name="document-text" size={20} color="#3b82f6" />
               </View>
-              <Text className="font-medium text-gray-900">Upload Statement</Text>
-              <Text className="text-gray-500 text-sm">Auto-detect</Text>
+              <Text className="font-medium text-gray-900">Subir estado</Text>
+              <Text className="text-gray-500 text-sm">Detección automática</Text>
+            </AnimatedPressable>
+            <AnimatedPressable className="bg-white rounded-xl p-4 shadow-sm border border-gray-100" style={{ width: "48%" }} onPress={() => navigation.navigate("NotesBulk")}>
+              <View className="bg-purple-100 rounded-full w-10 h-10 items-center justify-center mb-3">
+                <Ionicons name="pencil" size={20} color="#8b5cf6" />
+              </View>
+              <Text className="font-medium text-gray-900">Desde notas</Text>
+              <Text className="text-gray-500 text-sm">Pegar y revisar</Text>
             </AnimatedPressable>
           </View>
 
@@ -154,23 +162,23 @@ export default function AddExpenseScreen() {
           <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
             {/* Amount */}
             <View className="mb-6">
-              <Text className="text-gray-700 font-medium mb-2">Amount</Text>
+              <Text className="text-gray-700 font-medium mb-2">Monto</Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3">
                 <Text className="text-gray-600 text-lg font-medium mr-2">{getCurrencySymbol(currency)}</Text>
-                <TextInput value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" className="flex-1 text-lg font-medium text-gray-900" />
+                <TextInput value={amount} onChangeText={setAmount} placeholder="0,00" keyboardType="decimal-pad" className="flex-1 text-lg font-medium text-gray-900" />
               </View>
             </View>
 
             {/* Description */}
             <View className="mb-6">
-              <Text className="text-gray-700 font-medium mb-2">Description</Text>
-              <TextInput value={description} onChangeText={setDescription} placeholder="What did you spend on?" className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900" multiline numberOfLines={2} />
+              <Text className="text-gray-700 font-medium mb-2">Descripción</Text>
+              <TextInput value={description} onChangeText={setDescription} placeholder="¿En qué gastaste?" className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900" multiline numberOfLines={2} />
             </View>
 
             {/* Category field with suggestion */}
             <View className="mb-6">
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-gray-700 font-medium">Category</Text>
+                <Text className="text-gray-700 font-medium">Categoría</Text>
                 {suggested?.categoryId && (
                   <AnimatedPressable className="px-3 py-1.5 rounded-full bg-blue-50" onPress={() => setSelection({ categoryId: suggested!.categoryId, subcategoryId: suggested!.subcategoryId })}>
                     <Text className="text-blue-700 text-xs font-medium">Sugerido</Text>
@@ -185,9 +193,9 @@ export default function AddExpenseScreen() {
 
             {/* Date */}
             <View>
-              <Text className="text-gray-700 font-medium mb-2">Date</Text>
+              <Text className="text-gray-700 font-medium mb-2">Fecha</Text>
               <View className="bg-gray-50 rounded-xl px-4 py-3">
-                <Text className="text-gray-900">{format(new Date(), "MMMM d, yyyy")}</Text>
+                <Text className="text-gray-900">{format(new Date(), "d 'de' MMMM, yyyy", { locale: es })}</Text>
               </View>
             </View>
           </View>
@@ -195,7 +203,7 @@ export default function AddExpenseScreen() {
 
           {/* Add Button */}
           <AnimatedPressable onPress={handleAddExpense} className="bg-blue-600 rounded-xl py-4 items-center shadow-sm">
-            <Text className="text-white font-semibold text-lg">Add Expense</Text>
+            <Text className="text-white font-semibold text-lg">Agregar gasto</Text>
           </AnimatedPressable>
         </View>
       </ScrollView>
