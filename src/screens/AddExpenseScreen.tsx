@@ -102,18 +102,18 @@ export default function AddExpenseScreen() {
                 <AnimatedPressable onPress={() => setShowCamera(false)} className="bg-black/50 rounded-full p-3">
                   <Ionicons name="close" size={24} color="white" />
                 </AnimatedPressable>
-                <Text className="text-white font-semibold text-lg">Scan Receipt</Text>
+                <Text className="text-white font-semibold text-lg">Escanear recibo</Text>
                 <View className="w-12" />
               </View>
               <View className="flex-1 justify-center items-center">
                 <View className="border-2 border-white/50 rounded-2xl w-80 h-96 items-center justify-center">
-                  <Text className="text-white text-center px-4">Position receipt within the frame</Text>
+                  <Text className="text-white text-center px-4">Coloca el recibo dentro del marco</Text>
                 </View>
               </View>
               <View className="p-6">
                 <AnimatedPressable className="bg-blue-600 rounded-xl py-4 items-center" onPress={() => setShowCamera(false)}>
                   <Ionicons name="camera" size={24} color="white" />
-                  <Text className="text-white font-semibold mt-2">Capture Receipt</Text>
+                   <Text className="text-white font-semibold mt-2">Capturar recibo</Text>
                 </AnimatedPressable>
               </View>
             </SafeAreaView>

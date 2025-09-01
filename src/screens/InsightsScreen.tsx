@@ -12,6 +12,7 @@ import { useSettingsStore } from "../state/settingsStore";
 import { formatCurrency } from "../utils/currency";
 import { es } from "date-fns/locale";
 import { findCategoryByLabel, getLabelsFromIds } from "../types/categories";
+import CategoryRingCard from "../components/CategoryRingCard";
 
 
 export default function InsightsScreen() {
@@ -131,6 +132,30 @@ export default function InsightsScreen() {
             </View>
           </View>
         </View>
+
+        {/* Resumen por categoría */}
+        {categoryInsights.length > 0 && (
+          <View className="px-6 mb-8">
+            <Text className="text-xl font-semibold text-gray-900 mb-4">Resumen por categoría</Text>
+            <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+              {categoryInsights.map((c, idx) => {
+                const cat = findCategoryByLabel(c.category);
+                const icon = categoryIcon(cat?.id);
+                return (
+                  <View key={`${c.category}_${idx}`} style={{ width: "48%" }}>
+                    <CategoryRingCard
+                      name={c.category}
+                      amount={c.totalSpent}
+                      percentage={c.percentage}
+                      color={c.color}
+                      iconName={icon}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Gasto por categoría */}
         {categoryInsights.length > 0 && (

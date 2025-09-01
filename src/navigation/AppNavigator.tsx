@@ -61,10 +61,10 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: "Overview" }} />
-      <Tab.Screen name="Add" component={AddExpenseScreen} options={{ title: "Add Expense" }} />
-      <Tab.Screen name="Insights" component={InsightsScreen} options={{ title: "Insights" }} />
-      <Tab.Screen name="Budget" component={BudgetScreen} options={{ title: "Budget" }} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: "Inicio" }} />
+      <Tab.Screen name="Add" component={AddExpenseScreen} options={{ title: "Agregar" }} />
+      <Tab.Screen name="Insights" component={InsightsScreen} options={{ title: "Análisis" }} />
+      <Tab.Screen name="Budget" component={BudgetScreen} options={{ title: "Presupuesto" }} />
     </Tab.Navigator>
   );
 }
@@ -88,17 +88,17 @@ export default function AppNavigator() {
         <Stack.Screen
           name="StatementUpload"
           component={StatementUploadScreen}
-          options={{ title: "Upload Statement", presentation: "formSheet" }}
+          options={{ title: "Subir estado", presentation: "formSheet" }}
         />
         <Stack.Screen
           name="NotesBulk"
           component={NotesBulkScreen}
-          options={{ title: "Add From Notes", presentation: "formSheet" }}
+          options={{ title: "Desde notas", presentation: "formSheet" }}
         />
         <Stack.Screen
           name="ReviewExpenses"
           component={ReviewExpensesScreen}
-          options={{ title: "Review Expenses", presentation: "card" }}
+          options={{ title: "Revisar gastos", presentation: "card" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

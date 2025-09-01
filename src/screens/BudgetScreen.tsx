@@ -63,10 +63,10 @@ export default function BudgetScreen() {
         {/* Header */}
         <View className="px-6 pt-4 pb-6">
           <Text className="text-2xl font-bold text-gray-900 mb-2">
-            Budget Management
+            Gestión de presupuestos
           </Text>
           <Text className="text-gray-600">
-            Set and track your spending limits
+            Define y controla tus límites de gasto
           </Text>
         </View>
 
@@ -77,7 +77,7 @@ export default function BudgetScreen() {
               <View className="flex-row justify-between items-start mb-4">
                 <View>
                   <Text className="text-gray-600 text-sm font-medium">
-                    Total Budget
+                    Presupuesto total
                   </Text>
                   <Text className="text-2xl font-bold text-gray-900 mt-1">
                     {formatCurrency(totalBudget, currency)}
@@ -85,7 +85,7 @@ export default function BudgetScreen() {
                 </View>
                 <View className="items-end">
                   <Text className="text-gray-600 text-sm font-medium">
-                    Spent
+                    Gastado
                   </Text>
                   <Text className="text-xl font-bold text-gray-900 mt-1">
                     {formatCurrency(totalSpent, currency)}
@@ -96,7 +96,7 @@ export default function BudgetScreen() {
               <View className="mb-2">
                 <View className="flex-row justify-between items-center mb-1">
                   <Text className="text-gray-600 text-sm">
-                    Overall Progress
+                    Progreso general
                   </Text>
                   <Text className="text-gray-900 text-sm font-medium">
                     {overallPercentage.toFixed(0)}%
@@ -114,7 +114,7 @@ export default function BudgetScreen() {
               </View>
               
                <Text className="text-gray-500 text-sm text-center">
-                {formatCurrency(totalBudget - totalSpent, currency)} remaining
+                {formatCurrency(totalBudget - totalSpent, currency)} restante
               </Text>
             </View>
           </View>
@@ -129,7 +129,7 @@ export default function BudgetScreen() {
             <View className="flex-row items-center">
               <Ionicons name="add" size={20} color="white" />
               <Text className="text-white font-semibold text-lg ml-2">
-                Add Budget
+                Agregar presupuesto
               </Text>
             </View>
           </AnimatedPressable>
@@ -140,12 +140,12 @@ export default function BudgetScreen() {
           <View className="px-6 mb-6">
             <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <Text className="text-lg font-semibold text-gray-900 mb-4">
-                Set New Budget
+                Crear nuevo presupuesto
               </Text>
               
               {/* Category Selection */}
               <View className="mb-4">
-                <Text className="text-gray-700 font-medium mb-2">Category</Text>
+                 <Text className="text-gray-700 font-medium mb-2">Categoría</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View className="flex-row space-x-3">
                     {EXPENSE_CATEGORIES.map((category) => (
@@ -175,7 +175,7 @@ export default function BudgetScreen() {
 
               {/* Amount */}
               <View className="mb-4">
-                <Text className="text-gray-700 font-medium mb-2">Budget Amount</Text>
+                 <Text className="text-gray-700 font-medium mb-2">Monto del presupuesto</Text>
                 <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3">
                   <Text className="text-gray-600 text-lg font-medium mr-2">$</Text>
                   <TextInput
@@ -190,7 +190,7 @@ export default function BudgetScreen() {
 
               {/* Period */}
               <View className="mb-6">
-                <Text className="text-gray-700 font-medium mb-2">Period</Text>
+                 <Text className="text-gray-700 font-medium mb-2">Periodo</Text>
                 <View className="flex-row space-x-3">
                   {(["weekly", "monthly", "yearly"] as const).map((period) => (
                     <AnimatedPressable
@@ -202,14 +202,14 @@ export default function BudgetScreen() {
                           : "bg-white border-gray-200"
                       }`}
                     >
-                      <Text
+                       <Text
                         className={`text-center font-medium capitalize ${
                           newBudgetPeriod === period
                             ? "text-white"
                             : "text-gray-700"
                         }`}
                       >
-                        {period}
+                        {period === "weekly" ? "semanal" : period === "monthly" ? "mensual" : "anual"}
                       </Text>
                     </AnimatedPressable>
                   ))}
@@ -222,16 +222,16 @@ export default function BudgetScreen() {
                   onPress={() => setShowAddBudget(false)}
                   className="flex-1 py-3 rounded-xl border border-gray-200"
                 >
-                  <Text className="text-center font-medium text-gray-700">
-                    Cancel
+                    <Text className="text-center font-medium text-gray-700">
+                    Cancelar
                   </Text>
                 </AnimatedPressable>
                 <AnimatedPressable
                   onPress={handleAddBudget}
                   className="flex-1 py-3 rounded-xl bg-blue-600"
                 >
-                  <Text className="text-center font-medium text-white">
-                    Set Budget
+                   <Text className="text-center font-medium text-white">
+                    Guardar
                   </Text>
                 </AnimatedPressable>
               </View>
@@ -242,8 +242,8 @@ export default function BudgetScreen() {
         {/* Budget List */}
         {budgets.length > 0 && (
           <View className="px-6 mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
-              Your Budgets
+              <Text className="text-lg font-semibold text-gray-900 mb-4">
+              Tus presupuestos
             </Text>
             <View className="space-y-4">
               {budgets.map((budget, index) => {
@@ -269,7 +269,7 @@ export default function BudgetScreen() {
                           className="text-sm font-medium"
                           style={{ color: budgetStatus.color }}
                         >
-                          {percentage.toFixed(0)}% used
+                          {percentage.toFixed(0)}% usado
                         </Text>
                       </View>
                     </View>
@@ -287,7 +287,7 @@ export default function BudgetScreen() {
                     </View>
                     
                     <Text className="text-gray-500 text-sm text-center">
-                      {formatCurrency(budget.limit - budget.spent, currency)} remaining
+                      {formatCurrency(budget.limit - budget.spent, currency)} restante
                     </Text>
                   </View>
                 );
@@ -302,11 +302,11 @@ export default function BudgetScreen() {
             <View className="bg-gray-100 rounded-full w-16 h-16 items-center justify-center mb-4">
               <Ionicons name="wallet-outline" size={32} color="#6b7280" />
             </View>
-            <Text className="text-lg font-semibold text-gray-900 mb-2">
-              No budgets set
+             <Text className="text-lg font-semibold text-gray-900 mb-2">
+              Aún no hay presupuestos
             </Text>
             <Text className="text-gray-500 text-center mb-6">
-              Create your first budget to start tracking your spending limits
+              Crea tu primer presupuesto para empezar a controlar tus límites de gasto
             </Text>
           </View>
         )}
