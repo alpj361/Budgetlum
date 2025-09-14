@@ -10,6 +10,7 @@ import DashboardScreen from "../screens/DashboardScreen";
 import AddExpenseScreen from "../screens/AddExpenseScreen";
 import InsightsScreen from "../screens/InsightsScreen";
 import BudgetScreen from "../screens/BudgetScreen";
+import AIChatScreen from "../screens/AIChatScreen";
 import StatementUploadScreen from "../screens/StatementUploadScreen";
 import NotesBulkScreen from "../screens/NotesBulkScreen";
 import ReviewExpensesScreen from "../screens/ReviewExpensesScreen";
@@ -33,6 +34,8 @@ function MainTabs() {
             iconName = focused ? "analytics" : "analytics-outline";
           } else if (route.name === "Budget") {
             iconName = focused ? "wallet" : "wallet-outline";
+          } else if (route.name === "AI Chat") {
+            iconName = focused ? "chatbubbles" : "chatbubbles-outline";
           } else {
             iconName = "home-outline";
           }
@@ -65,6 +68,7 @@ function MainTabs() {
       <Tab.Screen name="Add" component={AddExpenseScreen} options={{ title: "Agregar" }} />
       <Tab.Screen name="Insights" component={InsightsScreen} options={{ title: "Análisis" }} />
       <Tab.Screen name="Budget" component={BudgetScreen} options={{ title: "Presupuesto" }} />
+      <Tab.Screen name="AI Chat" component={AIChatScreen} options={{ title: "IA Chat" }} />
     </Tab.Navigator>
   );
 }
