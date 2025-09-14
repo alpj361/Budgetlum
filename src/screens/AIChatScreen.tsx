@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AIMessage } from "../types/ai";
-import { getAnthropicChatResponse } from "../api/chat-service";
+import { getOpenAIChatResponse } from "../api/chat-service";
 
 interface ChatMessage extends AIMessage {
   id: string;
@@ -54,7 +54,7 @@ export default function AIChatScreen() {
     setIsLoading(true);
 
     try {
-      const response = await getAnthropicChatResponse(userMessage.content);
+      const response = await getOpenAIChatResponse(userMessage.content);
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
