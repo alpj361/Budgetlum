@@ -14,6 +14,8 @@ import AIChatScreen from "../screens/AIChatScreen";
 import StatementUploadScreen from "../screens/StatementUploadScreen";
 import NotesBulkScreen from "../screens/NotesBulkScreen";
 import ReviewExpensesScreen from "../screens/ReviewExpensesScreen";
+import OnboardingNavigator from "./OnboardingNavigator";
+import { useUserStore } from "../state/userStore";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -74,9 +76,25 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
+  const { isOnboardingComplete } = useUserStore();
+
+  // Determine initial route based on onboarding status
+  const initialRouteName = isOnboardingComplete() ? "MainTabs" : "Onboarding";
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="MainTabs">
+      <Stack.Navigator initialRouteName={initialRouteName}>
+        {/* Onboarding Flow */}
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingNavigator}
+          options={{ headerShown: false }}
+        />
+
+        {/* Main App Flow */}
+        <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+
+        {/* Modal Screens */}
         <Stack.Screen
           name="Settings"
           component={require("../screens/SettingsScreen").default}
@@ -88,7 +106,6 @@ export default function AppNavigator() {
             ),
           })}
         />
-        <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen
           name="StatementUpload"
           component={StatementUploadScreen}

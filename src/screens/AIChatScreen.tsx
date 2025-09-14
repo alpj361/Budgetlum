@@ -12,7 +12,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AIMessage } from "../types/ai";
-import { getOpenAIChatResponse } from "../api/chat-service";
+import { getBussyResponse, getBussyWelcomeMessage } from "../api/chat-service";
+import { useExpenseStore } from "../state/expenseStore";
+import { useUserStore } from "../state/userStore";
 
 interface ChatMessage extends AIMessage {
   id: string;
@@ -20,17 +22,49 @@ interface ChatMessage extends AIMessage {
 }
 
 export default function AIChatScreen() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "¡Hola! Soy tu asistente de IA para el presupuesto. Puedo ayudarte a analizar tus gastos, crear presupuestos, y responder preguntas sobre finanzas personales. ¿En qué puedo ayudarte hoy?",
-      timestamp: new Date(),
-    },
-  ]);
+  const { expenses, budgets, getTotalSpent } = useExpenseStore();
+  const { userProfile, getTotalIncome } = useUserStore();
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Initialize chat with Bussy's welcome message
+  useEffect(() => {
+    if (!isInitialized) {
+      initializeChat();
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
+
+  const initializeChat = async () => {
+    try {
+      const welcomeContent = await getBussyWelcomeMessage(userProfile);
+
+      const welcomeMessage: ChatMessage = {
+        id: "welcome-1",
+        role: "assistant",
+        content: welcomeContent,
+        timestamp: new Date(),
+      };
+
+      setMessages([welcomeMessage]);
+    } catch (error) {
+      console.error("Error initializing Bussy chat:", error);
+      // Fallback welcome message
+      const fallbackMessage: ChatMessage = {
+        id: "welcome-fallback",
+        role: "assistant",
+        content: userProfile?.name
+          ? `¡Hola ${userProfile.name}! 👋 Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?`
+          : "¡Hola! 👋 Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?",
+        timestamp: new Date(),
+      };
+      setMessages([fallbackMessage]);
+    }
+  };
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages are added
@@ -54,7 +88,16 @@ export default function AIChatScreen() {
     setIsLoading(true);
 
     try {
-      const response = await getOpenAIChatResponse(userMessage.content);
+      // Build context for Bussy
+      const context = {
+        userProfile,
+        recentExpenses: expenses.slice(0, 10),
+        budgets,
+        totalSpent: getTotalSpent(),
+        monthlyIncome: getTotalIncome("monthly"),
+      };
+
+      const response = await getBussyResponse(userMessage.content, context);
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -86,14 +129,8 @@ export default function AIChatScreen() {
           text: "Limpiar",
           style: "destructive",
           onPress: () => {
-            setMessages([
-              {
-                id: "1",
-                role: "assistant",
-                content: "¡Hola! Soy tu asistente de IA para el presupuesto. ¿En qué puedo ayudarte hoy?",
-                timestamp: new Date(),
-              },
-            ]);
+            setIsInitialized(false);
+            setMessages([]);
           },
         },
       ]
