@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import AppNavigator from "./src/navigation/AppNavigator";
+import ErrorBoundary from "./src/components/ErrorBoundary";
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -26,11 +27,13 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <AppNavigator />
-        <StatusBar style="auto" />
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <AppNavigator />
+          <StatusBar style="auto" />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }

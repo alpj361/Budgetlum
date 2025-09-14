@@ -41,11 +41,21 @@ export default function AnimatedPressable({
     onPress?.();
   };
 
-  return (
-    <Pressable disabled={disabled} onPressIn={pressIn} onPressOut={pressOut} onPress={handlePress} style={style}>
-      <Animated.View className={className} style={animatedStyle}>
+  try {
+    return (
+      <Pressable disabled={disabled} onPressIn={pressIn} onPressOut={pressOut} onPress={handlePress} style={style}>
+        <Animated.View className={className} style={animatedStyle}>
+          {children}
+        </Animated.View>
+      </Pressable>
+    );
+  } catch (error) {
+    // Fallback to basic pressable if animation/styling fails
+    console.warn('[AnimatedPressable] Fallback to basic pressable due to error:', error);
+    return (
+      <Pressable disabled={disabled} onPress={handlePress} style={style}>
         {children}
-      </Animated.View>
-    </Pressable>
-  );
+      </Pressable>
+    );
+  }
 }

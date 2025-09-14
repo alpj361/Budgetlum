@@ -3,6 +3,7 @@ import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-na
 import { SafeAreaView } from "react-native-safe-area-context";
 import AnimatedPressable from "../AnimatedPressable";
 import { Ionicons } from "@expo/vector-icons";
+import ErrorBoundary from "../ErrorBoundary";
 
 interface OnboardingContainerProps {
   title: string;
@@ -38,7 +39,8 @@ export default function OnboardingContainer({
   const progressPercentage = ((currentStep + 1) / totalSteps) * 100;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <ErrorBoundary>
+      <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -134,5 +136,6 @@ export default function OnboardingContainer({
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </ErrorBoundary>
   );
 }
