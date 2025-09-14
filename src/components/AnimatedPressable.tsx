@@ -44,7 +44,7 @@ export default function AnimatedPressable({
   try {
     return (
       <Pressable disabled={disabled} onPressIn={pressIn} onPressOut={pressOut} onPress={handlePress} style={style}>
-        <Animated.View className={className} style={animatedStyle}>
+        <Animated.View style={animatedStyle}>
           {children}
         </Animated.View>
       </Pressable>

@@ -49,7 +49,7 @@ export default function OnboardingContainer({
         <View className="px-6 pt-4 pb-2">
           <View className="flex-row items-center justify-between mb-4">
             {onBack ? (
-              <AnimatedPressable onPress={onBack} className="p-2 -ml-2">
+              <AnimatedPressable onPress={onBack} style={{ padding: 8, marginLeft: -8 }}>
                 <Ionicons name="chevron-back" size={24} color="#374151" />
               </AnimatedPressable>
             ) : (
@@ -57,7 +57,7 @@ export default function OnboardingContainer({
             )}
 
             {showSkip && onSkip && (
-              <AnimatedPressable onPress={onSkip} className="p-2">
+              <AnimatedPressable onPress={onSkip} style={{ padding: 8 }}>
                 <Text className="text-gray-500 font-medium">Omitir</Text>
               </AnimatedPressable>
             )}
@@ -116,11 +116,17 @@ export default function OnboardingContainer({
             <AnimatedPressable
               onPress={onNext}
               disabled={nextDisabled}
-              className={`rounded-xl py-4 items-center ${
-                nextDisabled
-                  ? "bg-gray-200"
-                  : "bg-blue-600 shadow-sm"
-              }`}
+              style={{
+                borderRadius: 12,
+                paddingVertical: 16,
+                alignItems: 'center',
+                backgroundColor: nextDisabled ? '#e5e7eb' : '#2563eb',
+                shadowColor: nextDisabled ? 'transparent' : '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: nextDisabled ? 0 : 0.1,
+                shadowRadius: nextDisabled ? 0 : 2,
+                elevation: nextDisabled ? 0 : 2,
+              }}
             >
               <Text
                 className={`font-semibold text-lg ${
