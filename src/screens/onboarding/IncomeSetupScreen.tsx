@@ -287,7 +287,46 @@ export default function IncomeSetupScreen() {
   };
 
   const estimatedMonthly = getEstimatedMonthly();
-  const canProceed = validateCurrentStep();
+
+  // Memoized validation to prevent infinite re-renders
+  const canProceed = React.useMemo(() => {
+    return validateCurrentStepSilent();
+  }, [currentStep, incomeName, frequency, stabilityPattern, incomeAmount, incomeRange, paymentPattern, cycles]);
+
+  // Silent validation that doesn't set errors
+  const validateCurrentStepSilent = (): boolean => {
+    switch (currentStep) {
+      case "intro":
+        return !!incomeName.trim();
+
+      case "frequency":
+        return !!frequency;
+
+      case "stability":
+        return !!stabilityPattern;
+
+      case "amount":
+        if (stabilityPattern === "consistent") {
+          const amount = parseFloat(incomeAmount);
+          return !!incomeAmount.trim() && !isNaN(amount) && amount > 0;
+        } else if (stabilityPattern === "seasonal" || stabilityPattern === "variable") {
+          return incomeRange.lowest > 0 && incomeRange.highest > 0 && incomeRange.highest > incomeRange.lowest;
+        }
+        return false;
+
+      case "pattern":
+        return !!paymentPattern;
+
+      case "cycles":
+        if (paymentPattern === "complex") {
+          return cycles.length > 0 && cycles.every(c => c.amount > 0);
+        }
+        return true;
+
+      default:
+        return false;
+    }
+  };
 
   const getStepTitle = (): string => {
     switch (currentStep) {
