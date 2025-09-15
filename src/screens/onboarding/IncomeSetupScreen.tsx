@@ -287,6 +287,7 @@ export default function IncomeSetupScreen() {
   };
 
   const estimatedMonthly = getEstimatedMonthly();
+  const canProceed = validateCurrentStep();
 
   const getStepTitle = (): string => {
     switch (currentStep) {
