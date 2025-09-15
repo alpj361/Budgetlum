@@ -230,7 +230,7 @@ export default function PaymentCycleEditor({
       {totalAmount > 0 && (
         <View className="bg-green-50 rounded-xl p-4 mt-4">
           <Text className="text-green-800 font-semibold text-center">
-            💰 Total por {frequency === "monthly" ? "mes" : "ciclo"}: ${totalAmount.toLocaleString()}
+            💰 {frequency === "monthly" ? "Total mensual" : `Total por ${frequency === "weekly" ? "4 semanas" : "ciclo"}`}: ${totalAmount.toLocaleString()}
           </Text>
           {frequency !== "monthly" && (
             <Text className="text-green-600 text-sm text-center mt-1">

@@ -1,6 +1,11 @@
-import { IncomeSource, PaymentCycle } from "../types/user";
+import { IncomeSource, PaymentCycle, IncomeRange } from "../types/user";
 
 export const calculateMonthlyIncome = (income: IncomeSource): number => {
+  // For stability-based calculations, use baseAmount if available
+  if (income.baseAmount && income.stabilityPattern) {
+    return calculateSimpleMonthlyIncome(income.baseAmount, income.frequency);
+  }
+
   // For simple patterns, use the base amount with frequency multiplier
   if (income.paymentPattern === "simple" || !income.cycles?.length) {
     return calculateSimpleMonthlyIncome(income.amount, income.frequency);
@@ -137,4 +142,83 @@ export const getIncomePreviewText = (income: IncomeSource): string => {
   const pattern = income.paymentPattern === "complex" && income.cycles?.length ? "variable" : "fijo";
 
   return `${getPaymentFrequencyDisplay(income.frequency)} ${pattern} → $${monthlyAmount.toLocaleString()}/mes`;
+};
+
+export const calculateConservativeBaseAmount = (
+  range: IncomeRange,
+  stabilityPattern: "seasonal" | "variable"
+): number => {
+  if (stabilityPattern === "seasonal") {
+    // For seasonal income, use a weighted average favoring the low end
+    return (range.lowest * 0.6) + (range.highest * 0.4);
+  } else {
+    // For variable income, use the lowest amount for maximum safety
+    return range.lowest;
+  }
+};
+
+export const validateIncomeRange = (range: IncomeRange): string[] => {
+  const errors: string[] = [];
+
+  if (!range.lowest || range.lowest <= 0) {
+    errors.push("Debe ingresar su monto más bajo.");
+  }
+
+  if (!range.highest || range.highest <= 0) {
+    errors.push("Debe ingresar su monto más alto.");
+  }
+
+  if (range.lowest > 0 && range.highest > 0 && range.highest <= range.lowest) {
+    errors.push("El monto más alto debe ser mayor al monto más bajo.");
+  }
+
+  return errors;
+};
+
+export const getStabilityGuidanceText = (stabilityPattern: string): string => {
+  const guidance = {
+    consistent: "Tu ingreso constante permitirá crear un presupuesto muy predecible.",
+    seasonal: "Presupuestaremos con un monto conservador para cubrir las temporadas bajas.",
+    variable: "Usaremos un enfoque conservador basado en tus ingresos más bajos.",
+  };
+
+  return guidance[stabilityPattern as keyof typeof guidance] || "";
+};
+
+export const createIncomeSourceFromStability = (
+  name: string,
+  frequency: string,
+  stabilityPattern: "consistent" | "seasonal" | "variable",
+  amount?: number,
+  range?: IncomeRange
+): Partial<IncomeSource> => {
+  const baseData = {
+    name: name.trim(),
+    frequency: frequency as any,
+    stabilityPattern,
+    isActive: true,
+    isPrimary: true,
+    isFoundational: true,
+    paymentPattern: "simple" as const,
+  };
+
+  if (stabilityPattern === "consistent") {
+    return {
+      ...baseData,
+      amount: amount || 0,
+      baseAmount: amount || 0,
+    };
+  }
+
+  if (stabilityPattern === "seasonal" || stabilityPattern === "variable") {
+    const conservativeAmount = range ? calculateConservativeBaseAmount(range, stabilityPattern) : 0;
+    return {
+      ...baseData,
+      amount: conservativeAmount,
+      baseAmount: conservativeAmount,
+      incomeRange: range,
+    };
+  }
+
+  return baseData;
 };

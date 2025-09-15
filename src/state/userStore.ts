@@ -109,6 +109,9 @@ export const useUserStore = create<UserStore>()(
           id: generateId(),
           isPrimary: income.isPrimary || get().incomes.length === 0, // Use provided isPrimary or first income is primary
           paymentPattern: income.paymentPattern || "simple", // Default to simple if not provided
+          stabilityPattern: income.stabilityPattern || "consistent", // Default to consistent
+          baseAmount: income.baseAmount || income.amount || 0, // Use baseAmount or fallback to amount
+          isFoundational: income.isFoundational !== undefined ? income.isFoundational : true, // Default to foundational
         };
 
         set((state) => ({

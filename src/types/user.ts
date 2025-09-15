@@ -49,6 +49,12 @@ export interface PaymentCycle {
   description?: string; // "First two weeks", "Last payment", etc.
 }
 
+export interface IncomeRange {
+  lowest: number;
+  highest: number;
+  averageLow: number; // For conservative budgeting
+}
+
 export interface IncomeSource {
   id: string;
   name: string;
@@ -61,6 +67,11 @@ export interface IncomeSource {
   // Enhanced payment cycle support
   paymentPattern: "simple" | "complex";
   cycles?: PaymentCycle[]; // For complex patterns
+  // Income stability analysis
+  stabilityPattern: "consistent" | "seasonal" | "variable";
+  incomeRange?: IncomeRange; // For variable income
+  baseAmount: number; // Conservative amount for budgeting
+  isFoundational: boolean; // Primary reliable income for budget base
 }
 
 export type OnboardingStep =
