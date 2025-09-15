@@ -1,6 +1,11 @@
-import { IncomeSource, PaymentCycle, IncomeRange } from "../types/user";
+import { IncomeSource, PaymentCycle, IncomeRange, PaymentStructure } from "../types/user";
 
 export const calculateMonthlyIncome = (income: IncomeSource): number => {
+  // Use new payment structure if available
+  if (income.paymentStructure) {
+    return calculateMonthlyFromStructure(income.paymentStructure, income);
+  }
+
   // For stability-based calculations, use baseAmount if available
   if (income.baseAmount && income.stabilityPattern) {
     return calculateSimpleMonthlyIncome(income.baseAmount, income.frequency);
@@ -221,4 +226,140 @@ export const createIncomeSourceFromStability = (
   }
 
   return baseData;
+};
+
+export const calculateMonthlyFromStructure = (
+  structure: PaymentStructure,
+  income: IncomeSource
+): number => {
+  // Get total payment amount for the period
+  let periodTotal = 0;
+
+  if (income.paymentPattern === "complex" && income.cycles?.length) {
+    // Sum all cycles
+    periodTotal = income.cycles.reduce((sum, cycle) => sum + cycle.amount, 0);
+  } else {
+    // Use base amount
+    periodTotal = income.baseAmount || income.amount || 0;
+  }
+
+  switch (structure.type) {
+    case "monthly":
+      return periodTotal;
+
+    case "bi-monthly":
+      // Two payments per month - periodTotal is the monthly total
+      return periodTotal;
+
+    case "bi-weekly":
+      // 26 payments per year
+      return (periodTotal * 26) / 12;
+
+    case "weekly":
+      // 52 payments per year
+      return (periodTotal * 52) / 12;
+
+    case "quarterly":
+      // 4 payments per year
+      return (periodTotal * 4) / 12;
+
+    case "irregular":
+      // Use periodTotal as monthly estimate
+      return periodTotal;
+
+    default:
+      return periodTotal;
+  }
+};
+
+export const getPaymentSchedulePreview = (
+  structure: PaymentStructure,
+  amounts: number[]
+): { month: string; payments: { amount: number; date: string }[]; total: number }[] => {
+  const months = ["Enero", "Febrero", "Marzo"];
+  const preview = [];
+
+  for (let i = 0; i < 3; i++) {
+    const month = months[i];
+    let payments: { amount: number; date: string }[] = [];
+
+    switch (structure.type) {
+      case "monthly":
+        payments = [{ amount: amounts[0] || 0, date: "30" }];
+        break;
+
+      case "bi-monthly":
+        payments = [
+          { amount: amounts[0] || 0, date: "1ro" },
+          { amount: amounts[1] || amounts[0] || 0, date: "15" },
+        ];
+        break;
+
+      case "bi-weekly":
+        // Simplified bi-weekly preview
+        const biWeeklyAmount = amounts[0] || 0;
+        if (i === 1) { // February sometimes has 3 bi-weekly payments
+          payments = [
+            { amount: biWeeklyAmount, date: "Viernes 1" },
+            { amount: biWeeklyAmount, date: "Viernes 2" },
+            { amount: biWeeklyAmount, date: "Viernes 3" },
+          ];
+        } else {
+          payments = [
+            { amount: biWeeklyAmount, date: "Viernes 1" },
+            { amount: biWeeklyAmount, date: "Viernes 2" },
+          ];
+        }
+        break;
+
+      case "weekly":
+        const weeklyAmount = amounts[0] || 0;
+        payments = [
+          { amount: weeklyAmount, date: "Sem 1" },
+          { amount: weeklyAmount, date: "Sem 2" },
+          { amount: weeklyAmount, date: "Sem 3" },
+          { amount: weeklyAmount, date: "Sem 4" },
+        ];
+        if (i === 0 || i === 2) { // Some months have 5 weeks
+          payments.push({ amount: weeklyAmount, date: "Sem 5" });
+        }
+        break;
+    }
+
+    const total = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    preview.push({ month, payments, total });
+  }
+
+  return preview;
+};
+
+export const getMaxPaymentsForStructure = (structure: PaymentStructure): number => {
+  switch (structure.type) {
+    case "monthly": return 1;
+    case "bi-monthly": return 2;
+    case "bi-weekly": return 1; // Single amount, gets multiplied
+    case "weekly": return 1; // Single amount, gets multiplied
+    case "quarterly": return 1;
+    case "irregular": return 6; // Allow up to 6 irregular payments
+    default: return 1;
+  }
+};
+
+export const getPaymentAmountLabels = (structure: PaymentStructure): string[] => {
+  switch (structure.type) {
+    case "monthly":
+      return ["Monto mensual"];
+    case "bi-monthly":
+      return ["Primer pago del mes", "Segundo pago del mes"];
+    case "bi-weekly":
+      return ["Monto cada 14 días"];
+    case "weekly":
+      return ["Monto semanal"];
+    case "quarterly":
+      return ["Monto trimestral"];
+    case "irregular":
+      return ["Monto estimado mensual"];
+    default:
+      return ["Monto"];
+  }
 };

@@ -9,11 +9,13 @@ import PaymentCycleEditor from "../../components/onboarding/PaymentCycleEditor";
 import IncomeStabilitySelector from "../../components/onboarding/IncomeStabilitySelector";
 import IncomeRangeCollector from "../../components/onboarding/IncomeRangeCollector";
 import VariableIncomeTypeSelector from "../../components/onboarding/VariableIncomeTypeSelector";
+import PaymentStructureSelector from "../../components/onboarding/PaymentStructureSelector";
+import PaymentAmountConfigurator from "../../components/onboarding/PaymentAmountConfigurator";
 import ConversationalGuidance from "../../components/onboarding/ConversationalGuidance";
 import { useUserStore } from "../../state/userStore";
 import { OnboardingStackParamList } from "../../navigation/OnboardingNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { PaymentCycle, IncomeRange } from "../../types/user";
+import { PaymentCycle, IncomeRange, PaymentStructure } from "../../types/user";
 import {
   calculateMonthlyIncome,
   createDefaultCycles,
@@ -56,15 +58,19 @@ export default function IncomeSetupScreen() {
   const { updateProfile, addIncome, setOnboardingStep } = useUserStore();
 
   // Flow state
-  const [currentStep, setCurrentStep] = useState<"intro" | "frequency" | "stability" | "variable-type" | "amount" | "pattern" | "cycles">("intro");
+  const [currentStep, setCurrentStep] = useState<"intro" | "payment-structure" | "stability" | "variable-type" | "amount" | "pattern" | "cycles">("intro");
 
   // Form data
   const [incomeName, setIncomeName] = useState("Trabajo principal");
-  const [frequency, setFrequency] = useState<string>("");
+  const [frequency, setFrequency] = useState<string>(""); // Legacy support
+  const [paymentStructure, setPaymentStructure] = useState<PaymentStructure | null>(null);
   const [stabilityPattern, setStabilityPattern] = useState<"consistent" | "seasonal" | "variable" | "">("");
-  const [variableType, setVariableType] = useState<"range" | "cycles" | "">("");  // For variable income patterns
+  const [variableType, setVariableType] = useState<"range" | "cycles" | "">("");
 
-  // Simple income
+  // Payment amounts (for new structure system)
+  const [paymentAmounts, setPaymentAmounts] = useState<number[]>([]);
+
+  // Simple income (legacy)
   const [incomeAmount, setIncomeAmount] = useState("");
 
   // Variable income
@@ -90,9 +96,9 @@ export default function IncomeSetupScreen() {
         }
         break;
 
-      case "frequency":
-        if (!frequency) {
-          newErrors.frequency = "Selecciona la frecuencia de pago";
+      case "payment-structure":
+        if (!paymentStructure) {
+          newErrors.paymentStructure = "Selecciona cómo recibes tus pagos";
         }
         break;
 
@@ -110,12 +116,20 @@ export default function IncomeSetupScreen() {
 
       case "amount":
         if (stabilityPattern === "consistent") {
-          if (!incomeAmount.trim()) {
-            newErrors.incomeAmount = "El monto es obligatorio";
+          // For new payment structure system
+          if (paymentStructure) {
+            if (!paymentAmounts.length || paymentAmounts.every(amt => amt <= 0)) {
+              newErrors.incomeAmount = "Ingresa al menos un monto válido";
+            }
           } else {
-            const amount = parseFloat(incomeAmount);
-            if (isNaN(amount) || amount <= 0) {
-              newErrors.incomeAmount = "Ingresa un monto válido";
+            // Legacy validation
+            if (!incomeAmount.trim()) {
+              newErrors.incomeAmount = "El monto es obligatorio";
+            } else {
+              const amount = parseFloat(incomeAmount);
+              if (isNaN(amount) || amount <= 0) {
+                newErrors.incomeAmount = "Ingresa un monto válido";
+              }
             }
           }
         } else if ((stabilityPattern === "seasonal" || stabilityPattern === "variable") && variableType === "range") {
@@ -124,8 +138,12 @@ export default function IncomeSetupScreen() {
             newErrors.lowestIncome = rangeErrors[0];
           }
         } else if ((stabilityPattern === "seasonal" || stabilityPattern === "variable") && variableType === "cycles") {
-          // For variable cycles, we need a simple amount to initialize cycles
-          if (!incomeAmount.trim()) {
+          // For variable cycles, check payment amounts or fallback to simple amount
+          if (paymentStructure && paymentAmounts.length) {
+            if (paymentAmounts.every(amt => amt <= 0)) {
+              newErrors.incomeAmount = "Ingresa al menos un monto válido para tus ciclos";
+            }
+          } else if (!incomeAmount.trim()) {
             newErrors.incomeAmount = "Ingresa un monto de referencia para crear los ciclos";
           }
         }
@@ -153,8 +171,8 @@ export default function IncomeSetupScreen() {
 
   const getNextStep = (): string | null => {
     switch (currentStep) {
-      case "intro": return "frequency";
-      case "frequency": return "stability";
+      case "intro": return "payment-structure";
+      case "payment-structure": return "stability";
       case "stability":
         // Variable/seasonal income needs to choose type first
         return (stabilityPattern === "seasonal" || stabilityPattern === "variable")
@@ -162,15 +180,19 @@ export default function IncomeSetupScreen() {
           : "amount";
       case "variable-type": return "amount";
       case "amount":
-        // For consistent income, might go to pattern selection or finish
-        if (stabilityPattern === "consistent") {
-          return frequency === "irregular" ? null : "pattern";
+        // For consistent income with certain structures, might go to pattern selection
+        if (stabilityPattern === "consistent" && paymentStructure?.type === "irregular") {
+          return null; // Irregular goes straight to completion
         }
         // For variable income with cycles, go to pattern selection
         if ((stabilityPattern === "seasonal" || stabilityPattern === "variable") && variableType === "cycles") {
           return "pattern";
         }
-        return null; // Range-based variable income goes to completion
+        // For payment structures that support complex patterns
+        if (paymentStructure && ["bi-monthly", "monthly"].includes(paymentStructure.type) && stabilityPattern === "consistent") {
+          return "pattern";
+        }
+        return null; // Simple cases go to completion
       case "pattern":
         return paymentPattern === "complex" ? "cycles" : null;
       case "cycles": return null;
@@ -197,34 +219,69 @@ export default function IncomeSetupScreen() {
     let incomeSourceData: any;
 
     if (stabilityPattern === "consistent") {
-      incomeSourceData = createIncomeSourceFromStability(
-        incomeName,
-        frequency,
-        "consistent",
-        parseFloat(incomeAmount) || undefined,
-        undefined
-      );
+      if (paymentStructure && paymentAmounts.length > 0) {
+        // New payment structure system
+        const totalAmount = paymentAmounts.reduce((sum, amt) => sum + amt, 0);
+        incomeSourceData = {
+          name: incomeName.trim(),
+          frequency: frequency as any,
+          paymentStructure: paymentStructure,
+          stabilityPattern: "consistent",
+          isActive: true,
+          isPrimary: true,
+          isFoundational: true,
+          paymentPattern: "simple",
+          amount: totalAmount,
+          baseAmount: totalAmount,
+        };
+      } else {
+        // Legacy fallback
+        incomeSourceData = createIncomeSourceFromStability(
+          incomeName,
+          frequency,
+          "consistent",
+          parseFloat(incomeAmount) || undefined,
+          undefined
+        );
+      }
     } else if ((stabilityPattern === "seasonal" || stabilityPattern === "variable") && variableType === "range") {
       incomeSourceData = createIncomeSourceFromStability(
         incomeName,
-        frequency,
+        paymentStructure?.type || frequency,
         stabilityPattern,
         undefined,
         incomeRange
       );
     } else if ((stabilityPattern === "seasonal" || stabilityPattern === "variable") && variableType === "cycles") {
-      // For variable income with cycles, create base structure
-      incomeSourceData = {
-        name: incomeName.trim(),
-        frequency: frequency as any,
-        stabilityPattern: stabilityPattern,
-        isActive: true,
-        isPrimary: true,
-        isFoundational: true,
-        paymentPattern: paymentPattern === "complex" ? "complex" : "simple",
-        amount: parseFloat(incomeAmount) || 0,
-        baseAmount: parseFloat(incomeAmount) || 0,
-      };
+      if (paymentStructure && paymentAmounts.length > 0) {
+        // New payment structure with variable cycles
+        const totalAmount = paymentAmounts.reduce((sum, amt) => sum + amt, 0);
+        incomeSourceData = {
+          name: incomeName.trim(),
+          frequency: frequency as any,
+          paymentStructure: paymentStructure,
+          stabilityPattern: stabilityPattern,
+          isActive: true,
+          isPrimary: true,
+          isFoundational: true,
+          paymentPattern: paymentPattern === "complex" ? "complex" : "simple",
+          amount: totalAmount,
+          baseAmount: totalAmount,
+        };
+      } else {
+        // Legacy fallback
+        incomeSourceData = {
+          name: incomeName.trim(),
+          frequency: frequency as any,
+          stabilityPattern: stabilityPattern,
+          isActive: true,
+          isPrimary: true,
+          isFoundational: true,
+          paymentPattern: paymentPattern === "complex" ? "complex" : "simple",
+          amount: parseFloat(incomeAmount) || 0,
+          baseAmount: parseFloat(incomeAmount) || 0,
+        };
+      }
     }
 
     // Add cycles if complex pattern
@@ -242,7 +299,7 @@ export default function IncomeSetupScreen() {
     // Update profile with primary income info
     updateProfile({
       primaryIncome: monthlyIncome,
-      payFrequency: frequency as any,
+      payFrequency: paymentStructure?.type || frequency as any,
     });
 
     setOnboardingStep(3);
@@ -251,8 +308,8 @@ export default function IncomeSetupScreen() {
 
   const handleBack = () => {
     const previousSteps = {
-      "frequency": "intro",
-      "stability": "frequency",
+      "payment-structure": "intro",
+      "stability": "payment-structure",
       "variable-type": "stability",
       "amount": (stabilityPattern === "seasonal" || stabilityPattern === "variable") ? "variable-type" : "stability",
       "pattern": "amount",
@@ -276,12 +333,14 @@ export default function IncomeSetupScreen() {
   };
 
   // Dynamic handlers
-  const handleFrequencyChange = (newFrequency: string) => {
-    setFrequency(newFrequency);
+  const handlePaymentStructureChange = (structure: PaymentStructure) => {
+    setPaymentStructure(structure);
+    setFrequency(structure.type); // Set legacy frequency for backward compatibility
+    setPaymentAmounts([]);
     setPaymentPattern("");
     setCycles([]);
-    if (errors.frequency) {
-      setErrors({ ...errors, frequency: "" });
+    if (errors.paymentStructure) {
+      setErrors({ ...errors, paymentStructure: "" });
     }
   };
 
@@ -355,8 +414,8 @@ export default function IncomeSetupScreen() {
       case "intro":
         return !!incomeName.trim();
 
-      case "frequency":
-        return !!frequency;
+      case "payment-structure":
+        return !!paymentStructure;
 
       case "stability":
         return !!stabilityPattern;
@@ -366,13 +425,21 @@ export default function IncomeSetupScreen() {
 
       case "amount":
         if (stabilityPattern === "consistent") {
-          const amount = parseFloat(incomeAmount);
-          return !!incomeAmount.trim() && !isNaN(amount) && amount > 0;
+          if (paymentStructure && paymentAmounts.length) {
+            return paymentAmounts.some(amt => amt > 0);
+          } else {
+            const amount = parseFloat(incomeAmount);
+            return !!incomeAmount.trim() && !isNaN(amount) && amount > 0;
+          }
         } else if ((stabilityPattern === "seasonal" || stabilityPattern === "variable") && variableType === "range") {
           return incomeRange.lowest > 0 && incomeRange.highest > 0 && incomeRange.highest > incomeRange.lowest;
         } else if ((stabilityPattern === "seasonal" || stabilityPattern === "variable") && variableType === "cycles") {
-          const amount = parseFloat(incomeAmount);
-          return !!incomeAmount.trim() && !isNaN(amount) && amount > 0;
+          if (paymentStructure && paymentAmounts.length) {
+            return paymentAmounts.some(amt => amt > 0);
+          } else {
+            const amount = parseFloat(incomeAmount);
+            return !!incomeAmount.trim() && !isNaN(amount) && amount > 0;
+          }
         }
         return false;
 
@@ -393,21 +460,21 @@ export default function IncomeSetupScreen() {
   // Memoized validation to prevent infinite re-renders
   const canProceed = React.useMemo(() => {
     return validateCurrentStepSilent();
-  }, [currentStep, incomeName, frequency, stabilityPattern, variableType, incomeAmount, incomeRange, paymentPattern, cycles]);
+  }, [currentStep, incomeName, paymentStructure, stabilityPattern, variableType, incomeAmount, paymentAmounts, incomeRange, paymentPattern, cycles]);
 
   const getStepTitle = (): string => {
     switch (currentStep) {
       case "intro": return "Hablemos de tu ingreso principal";
-      case "frequency": return "¿Con qué frecuencia te pagan?";
+      case "payment-structure": return "¿Cómo recibes tus pagos?";
       case "stability": return "¿Cómo es tu ingreso mes a mes?";
       case "variable-type": return "¿Cómo funciona tu variación?";
       case "amount":
         if (stabilityPattern === "consistent") {
-          return "¿Cuánto recibes por pago?";
+          return paymentStructure?.description ? `Configura tu ${paymentStructure.description.toLowerCase()}` : "¿Cuánto recibes por pago?";
         } else if (variableType === "range") {
           return "Cuéntanos sobre tu rango de ingresos";
         } else if (variableType === "cycles") {
-          return "Monto de referencia para tus ciclos";
+          return "Configura tus pagos variables";
         }
         return "Configura tu ingreso";
       case "pattern": return "¿Cómo recibes este ingreso?";
@@ -453,27 +520,19 @@ export default function IncomeSetupScreen() {
           </View>
         );
 
-      case "frequency":
+      case "payment-structure":
         return (
           <View className="flex-1">
-            <View className="mb-6">
-              {frequencyOptions.map((option) => (
-                <SelectionCard
-                  key={option.id}
-                  title={option.title}
-                  description={option.description}
-                  icon={option.icon}
-                  isSelected={frequency === option.id}
-                  onPress={() => handleFrequencyChange(option.id)}
-                />
-              ))}
+            <PaymentStructureSelector
+              selectedStructure={paymentStructure}
+              onStructureChange={handlePaymentStructureChange}
+            />
 
-              {errors.frequency && (
-                <Text className="text-red-500 text-sm mt-2 ml-1">
-                  {errors.frequency}
-                </Text>
-              )}
-            </View>
+            {errors.paymentStructure && (
+              <Text className="text-red-500 text-sm mt-2 ml-1">
+                {errors.paymentStructure}
+              </Text>
+            )}
           </View>
         );
 
@@ -521,7 +580,16 @@ export default function IncomeSetupScreen() {
       case "amount":
         return (
           <View className="flex-1">
-            {stabilityPattern === "consistent" ? (
+            {stabilityPattern === "consistent" && paymentStructure ? (
+              <PaymentAmountConfigurator
+                paymentStructure={paymentStructure}
+                amounts={paymentAmounts}
+                onAmountsChange={setPaymentAmounts}
+                stabilityPattern={stabilityPattern}
+                errors={errors}
+              />
+            ) : stabilityPattern === "consistent" ? (
+              // Legacy fallback
               <InputField
                 label="Monto por pago"
                 placeholder="0"
@@ -541,12 +609,22 @@ export default function IncomeSetupScreen() {
             ) : variableType === "range" ? (
               <IncomeRangeCollector
                 stabilityPattern={stabilityPattern as "seasonal" | "variable"}
-                frequency={frequency}
+                frequency={paymentStructure?.type || frequency}
                 incomeRange={incomeRange}
                 onRangeChange={setIncomeRange}
                 errors={errors}
               />
+            ) : variableType === "cycles" && paymentStructure ? (
+              <PaymentAmountConfigurator
+                paymentStructure={paymentStructure}
+                amounts={paymentAmounts}
+                onAmountsChange={setPaymentAmounts}
+                stabilityPattern={stabilityPattern}
+                variableType={variableType}
+                errors={errors}
+              />
             ) : variableType === "cycles" ? (
+              // Legacy fallback for cycles
               <View>
                 <View className="p-4 bg-amber-50 rounded-xl mb-4">
                   <Text className="text-amber-800 text-sm">

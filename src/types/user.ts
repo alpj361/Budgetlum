@@ -55,11 +55,19 @@ export interface IncomeRange {
   averageLow: number; // For conservative budgeting
 }
 
+export interface PaymentStructure {
+  type: "monthly" | "bi-monthly" | "bi-weekly" | "weekly" | "quarterly" | "irregular";
+  paymentsPerPeriod: number;
+  period: "month" | "year";
+  description: string; // Human readable description
+}
+
 export interface IncomeSource {
   id: string;
   name: string;
   amount: number; // Base amount (for simple mode) or total estimated monthly
-  frequency: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "irregular";
+  frequency: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "irregular"; // Legacy support
+  paymentStructure?: PaymentStructure; // New structured approach
   nextPayDate?: string;
   isActive: boolean;
   isPrimary: boolean;
