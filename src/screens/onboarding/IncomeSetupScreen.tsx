@@ -288,11 +288,6 @@ export default function IncomeSetupScreen() {
 
   const estimatedMonthly = getEstimatedMonthly();
 
-  // Memoized validation to prevent infinite re-renders
-  const canProceed = React.useMemo(() => {
-    return validateCurrentStepSilent();
-  }, [currentStep, incomeName, frequency, stabilityPattern, incomeAmount, incomeRange, paymentPattern, cycles]);
-
   // Silent validation that doesn't set errors
   const validateCurrentStepSilent = (): boolean => {
     switch (currentStep) {
@@ -327,6 +322,11 @@ export default function IncomeSetupScreen() {
         return false;
     }
   };
+
+  // Memoized validation to prevent infinite re-renders
+  const canProceed = React.useMemo(() => {
+    return validateCurrentStepSilent();
+  }, [currentStep, incomeName, frequency, stabilityPattern, incomeAmount, incomeRange, paymentPattern, cycles]);
 
   const getStepTitle = (): string => {
     switch (currentStep) {
