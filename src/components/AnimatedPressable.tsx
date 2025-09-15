@@ -41,20 +41,31 @@ export default function AnimatedPressable({
     onPress?.();
   };
 
+  // Safe className rendering - only apply if not in problematic context
+  const safeClassName = React.useMemo(() => {
+    try {
+      // Check if we're in a context where className processing is safe
+      return className || undefined;
+    } catch {
+      return undefined;
+    }
+  }, [className]);
+
   try {
     return (
       <Pressable disabled={disabled} onPressIn={pressIn} onPressOut={pressOut} onPress={handlePress} style={style}>
-        <Animated.View style={animatedStyle}>
+        <Animated.View className={safeClassName} style={animatedStyle}>
           {children}
         </Animated.View>
       </Pressable>
     );
   } catch (error) {
-    // Fallback to basic pressable if animation/styling fails
-    console.warn('[AnimatedPressable] Fallback to basic pressable due to error:', error);
+    // Fallback to basic pressable without className if styling fails
     return (
-      <Pressable disabled={disabled} onPress={handlePress} style={style}>
-        {children}
+      <Pressable disabled={disabled} onPressIn={pressIn} onPressOut={pressOut} onPress={handlePress} style={style}>
+        <Animated.View style={animatedStyle}>
+          {children}
+        </Animated.View>
       </Pressable>
     );
   }

@@ -1,18 +1,47 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AnimatedPressable from "../components/AnimatedPressable";
 import { CURRENCIES, CurrencyCode } from "../types/currency";
 import { useSettingsStore } from "../state/settingsStore";
+import { useUserStore } from "../state/userStore";
 import { formatCurrency } from "../utils/currency";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 export default function SettingsScreen() {
   const primary = useSettingsStore((s) => s.primaryCurrency);
   const setPrimary = useSettingsStore((s) => s.setPrimaryCurrency);
+  const resetUserData = useUserStore((s) => s.resetUserData);
+  const navigation = useNavigation();
   const [open, setOpen] = useState(false);
 
   const current = CURRENCIES.find((c) => c.code === primary) || CURRENCIES[0];
+
+  const handleResetOnboarding = () => {
+    Alert.alert(
+      "Reiniciar Onboarding",
+      "¿Estás seguro de que quieres reiniciar el proceso de configuración inicial? Esto borrará todos tus datos de usuario.",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Reiniciar",
+          style: "destructive",
+          onPress: () => {
+            resetUserData();
+            // Navigate back to root and let AppNavigator handle the onboarding redirect
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Onboarding' as never }],
+            });
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -80,6 +109,32 @@ export default function SettingsScreen() {
         <View className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm mt-6">
           <Text className="text-gray-600 mb-1">Vista previa</Text>
           <Text className="text-gray-900 font-semibold text-lg">{formatCurrency(1234.56, primary)}</Text>
+        </View>
+
+        {/* Reset Onboarding Button */}
+        <View className="mt-8 pt-6 border-t border-gray-200">
+          <Text className="text-lg font-semibold text-gray-900 mb-3">Configuración Avanzada</Text>
+          <AnimatedPressable
+            onPress={handleResetOnboarding}
+            style={{
+              backgroundColor: '#fee2e2',
+              borderColor: '#fecaca',
+              borderWidth: 1,
+              borderRadius: 12,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="refresh" size={20} color="#dc2626" style={{ marginRight: 8 }} />
+            <Text style={{ color: '#dc2626', fontWeight: '600', fontSize: 16 }}>
+              Reiniciar Onboarding
+            </Text>
+          </AnimatedPressable>
+          <Text className="text-gray-500 text-sm mt-2 text-center">
+            Esto borrará todos tus datos y reiniciará el proceso de configuración inicial
+          </Text>
         </View>
       </View>
     </SafeAreaView>
