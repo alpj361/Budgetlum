@@ -41,15 +41,26 @@ export interface FinancialGoal {
   isActive: boolean;
 }
 
+export interface PaymentCycle {
+  id: string;
+  amount: number;
+  weekOfMonth?: number; // For weekly patterns (1-4)
+  dayOfMonth?: number;  // For monthly patterns (1-31)
+  description?: string; // "First two weeks", "Last payment", etc.
+}
+
 export interface IncomeSource {
   id: string;
   name: string;
-  amount: number;
+  amount: number; // Base amount (for simple mode) or total estimated monthly
   frequency: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "irregular";
   nextPayDate?: string;
   isActive: boolean;
   isPrimary: boolean;
   description?: string;
+  // Enhanced payment cycle support
+  paymentPattern: "simple" | "complex";
+  cycles?: PaymentCycle[]; // For complex patterns
 }
 
 export type OnboardingStep =

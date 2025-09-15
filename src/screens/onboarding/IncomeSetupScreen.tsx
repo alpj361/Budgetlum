@@ -4,9 +4,18 @@ import { useNavigation } from "@react-navigation/native";
 import OnboardingContainer from "../../components/onboarding/OnboardingContainer";
 import InputField from "../../components/onboarding/InputField";
 import SelectionCard from "../../components/onboarding/SelectionCard";
+import PaymentPatternSelector from "../../components/onboarding/PaymentPatternSelector";
+import PaymentCycleEditor from "../../components/onboarding/PaymentCycleEditor";
 import { useUserStore } from "../../state/userStore";
 import { OnboardingStackParamList } from "../../navigation/OnboardingNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { PaymentCycle } from "../../types/user";
+import {
+  calculateMonthlyIncome,
+  createDefaultCycles,
+  validatePaymentCycles,
+  getIncomePreviewText,
+} from "../../utils/incomeCalculations";
 
 type IncomeSetupScreenNavigationProp = NativeStackNavigationProp<OnboardingStackParamList, "IncomeSetup">;
 
@@ -44,6 +53,8 @@ export default function IncomeSetupScreen() {
   const [incomeName, setIncomeName] = useState("Trabajo principal");
   const [incomeAmount, setIncomeAmount] = useState("");
   const [frequency, setFrequency] = useState<string>("");
+  const [paymentPattern, setPaymentPattern] = useState<"simple" | "complex" | "">("");
+  const [cycles, setCycles] = useState<PaymentCycle[]>([]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const validateForm = () => {
@@ -53,17 +64,29 @@ export default function IncomeSetupScreen() {
       newErrors.incomeName = "El nombre del ingreso es obligatorio";
     }
 
-    if (!incomeAmount.trim()) {
-      newErrors.incomeAmount = "El monto es obligatorio";
-    } else {
-      const amount = parseFloat(incomeAmount);
-      if (isNaN(amount) || amount <= 0) {
-        newErrors.incomeAmount = "Ingresa un monto válido";
-      }
-    }
-
     if (!frequency) {
       newErrors.frequency = "Selecciona la frecuencia de pago";
+    }
+
+    if (!paymentPattern) {
+      newErrors.paymentPattern = "Selecciona cómo recibes el ingreso";
+    }
+
+    // Validate based on payment pattern
+    if (paymentPattern === "simple") {
+      if (!incomeAmount.trim()) {
+        newErrors.incomeAmount = "El monto es obligatorio";
+      } else {
+        const amount = parseFloat(incomeAmount);
+        if (isNaN(amount) || amount <= 0) {
+          newErrors.incomeAmount = "Ingresa un monto válido";
+        }
+      }
+    } else if (paymentPattern === "complex") {
+      const cycleErrors = validatePaymentCycles(cycles, frequency);
+      if (cycleErrors.length > 0) {
+        newErrors.cycles = cycleErrors[0]; // Show first error
+      }
     }
 
     setErrors(newErrors);
@@ -73,18 +96,26 @@ export default function IncomeSetupScreen() {
   const handleNext = () => {
     if (!validateForm()) return;
 
-    // Add the primary income
-    addIncome({
+    // Create income source based on pattern
+    const incomeSource = {
       name: incomeName.trim(),
-      amount: parseFloat(incomeAmount),
+      amount: paymentPattern === "simple" ? parseFloat(incomeAmount) : 0,
       frequency: frequency as any,
       isActive: true,
       isPrimary: true,
-    });
+      paymentPattern: paymentPattern as "simple" | "complex",
+      cycles: paymentPattern === "complex" ? cycles : undefined,
+    };
+
+    // Calculate monthly income for profile
+    const monthlyIncome = calculateMonthlyIncome(incomeSource as any);
+
+    // Add the primary income
+    addIncome(incomeSource as any);
 
     // Update profile with primary income info
     updateProfile({
-      primaryIncome: parseFloat(incomeAmount),
+      primaryIncome: monthlyIncome,
       payFrequency: frequency as any,
     });
 
@@ -103,18 +134,59 @@ export default function IncomeSetupScreen() {
     navigation.navigate("ExpenseProfile");
   };
 
-  const canProceed = incomeName.trim() && incomeAmount.trim() && frequency && !Object.keys(errors).length;
+  const handleFrequencyChange = (newFrequency: string) => {
+    setFrequency(newFrequency);
+    setPaymentPattern(""); // Reset pattern when frequency changes
+    setCycles([]); // Reset cycles
+    if (errors.frequency) {
+      setErrors({ ...errors, frequency: "" });
+    }
+  };
+
+  const handlePatternChange = (pattern: "simple" | "complex") => {
+    setPaymentPattern(pattern);
+
+    if (pattern === "complex" && frequency && incomeAmount) {
+      // Initialize with default cycles based on entered amount
+      const defaultCycles = createDefaultCycles(frequency, parseFloat(incomeAmount) || 100);
+      setCycles(defaultCycles);
+    }
+
+    if (errors.paymentPattern) {
+      setErrors({ ...errors, paymentPattern: "" });
+    }
+  };
+
+  const canProceed = incomeName.trim() &&
+    frequency &&
+    paymentPattern &&
+    ((paymentPattern === "simple" && incomeAmount.trim()) || (paymentPattern === "complex" && cycles.length > 0)) &&
+    !Object.keys(errors).length;
 
   // Calculate estimated monthly income for display
   const estimatedMonthly = (() => {
-    const amount = parseFloat(incomeAmount) || 0;
-    switch (frequency) {
-      case "weekly": return amount * 4.33;
-      case "bi-weekly": return amount * 2.17;
-      case "monthly": return amount;
-      case "irregular": return amount;
-      default: return 0;
+    if (!paymentPattern || !frequency) return 0;
+
+    if (paymentPattern === "simple" && incomeAmount) {
+      const tempIncome = {
+        amount: parseFloat(incomeAmount),
+        frequency: frequency as any,
+        paymentPattern: "simple" as const,
+      };
+      return calculateMonthlyIncome(tempIncome as any);
     }
+
+    if (paymentPattern === "complex" && cycles.length > 0) {
+      const tempIncome = {
+        amount: 0,
+        frequency: frequency as any,
+        paymentPattern: "complex" as const,
+        cycles: cycles,
+      };
+      return calculateMonthlyIncome(tempIncome as any);
+    }
+
+    return 0;
   })();
 
   return (
@@ -152,23 +224,25 @@ export default function IncomeSetupScreen() {
             required
           />
 
-          <InputField
-            label="Monto por pago"
-            placeholder="0"
-            value={incomeAmount}
-            onChangeText={(text) => {
-              // Only allow numbers and decimal point
-              const numericText = text.replace(/[^0-9.]/g, '');
-              setIncomeAmount(numericText);
-              if (errors.incomeAmount) {
-                setErrors({ ...errors, incomeAmount: "" });
-              }
-            }}
-            keyboardType="decimal-pad"
-            icon="cash"
-            error={errors.incomeAmount}
-            required
-          />
+          {paymentPattern === "simple" && (
+            <InputField
+              label="Monto por pago"
+              placeholder="0"
+              value={incomeAmount}
+              onChangeText={(text) => {
+                // Only allow numbers and decimal point
+                const numericText = text.replace(/[^0-9.]/g, '');
+                setIncomeAmount(numericText);
+                if (errors.incomeAmount) {
+                  setErrors({ ...errors, incomeAmount: "" });
+                }
+              }}
+              keyboardType="decimal-pad"
+              icon="cash"
+              error={errors.incomeAmount}
+              required
+            />
+          )}
         </View>
 
         {/* Frequency Section */}
@@ -184,12 +258,7 @@ export default function IncomeSetupScreen() {
               description={option.description}
               icon={option.icon}
               isSelected={frequency === option.id}
-              onPress={() => {
-                setFrequency(option.id);
-                if (errors.frequency) {
-                  setErrors({ ...errors, frequency: "" });
-                }
-              }}
+              onPress={() => handleFrequencyChange(option.id)}
             />
           ))}
 
@@ -200,6 +269,45 @@ export default function IncomeSetupScreen() {
           )}
         </View>
 
+        {/* Payment Pattern Section */}
+        {frequency && (
+          <>
+            <PaymentPatternSelector
+              selectedPattern={paymentPattern}
+              onPatternChange={handlePatternChange}
+              frequency={frequency}
+            />
+
+            {errors.paymentPattern && (
+              <Text className="text-red-500 text-sm mt-2 ml-1">
+                {errors.paymentPattern}
+              </Text>
+            )}
+          </>
+        )}
+
+        {/* Complex Payment Cycles */}
+        {paymentPattern === "complex" && (
+          <>
+            <PaymentCycleEditor
+              frequency={frequency}
+              cycles={cycles}
+              onCyclesChange={(newCycles) => {
+                setCycles(newCycles);
+                if (errors.cycles) {
+                  setErrors({ ...errors, cycles: "" });
+                }
+              }}
+            />
+
+            {errors.cycles && (
+              <Text className="text-red-500 text-sm mt-2 ml-1">
+                {errors.cycles}
+              </Text>
+            )}
+          </>
+        )}
+
         {/* Estimated Monthly Display */}
         {estimatedMonthly > 0 && (
           <View className="p-4 bg-green-50 rounded-xl mb-6">
@@ -207,7 +315,10 @@ export default function IncomeSetupScreen() {
               💰 Ingreso mensual estimado: ${estimatedMonthly.toLocaleString()}
             </Text>
             <Text className="text-green-600 text-sm text-center mt-1">
-              Podrás agregar más fuentes de ingreso después
+              {paymentPattern === "complex" ?
+                "Basado en tu patrón de pagos variable" :
+                "Podrás agregar más fuentes de ingreso después"
+              }
             </Text>
           </View>
         )}

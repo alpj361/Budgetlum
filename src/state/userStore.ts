@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProfile, FinancialGoal, IncomeSource } from "../types/user";
+import { calculateMonthlyIncome } from "../utils/incomeCalculations";
 
 interface UserStore {
   userProfile: UserProfile;
@@ -106,7 +107,8 @@ export const useUserStore = create<UserStore>()(
         const newIncome: IncomeSource = {
           ...income,
           id: generateId(),
-          isPrimary: get().incomes.length === 0, // First income is primary
+          isPrimary: income.isPrimary || get().incomes.length === 0, // Use provided isPrimary or first income is primary
+          paymentPattern: income.paymentPattern || "simple", // Default to simple if not provided
         };
 
         set((state) => ({
@@ -192,25 +194,7 @@ export const useUserStore = create<UserStore>()(
         return incomes
           .filter(income => income.isActive)
           .reduce((total, income) => {
-            let monthlyAmount = 0;
-
-            switch (income.frequency) {
-              case "weekly":
-                monthlyAmount = income.amount * 4.33; // Average weeks per month
-                break;
-              case "bi-weekly":
-                monthlyAmount = income.amount * 2.17; // Average bi-weeks per month
-                break;
-              case "monthly":
-                monthlyAmount = income.amount;
-                break;
-              case "quarterly":
-                monthlyAmount = income.amount / 3;
-                break;
-              case "irregular":
-                monthlyAmount = income.amount; // Assume monthly equivalent
-                break;
-            }
+            const monthlyAmount = calculateMonthlyIncome(income);
 
             if (frequency === "yearly") {
               return total + (monthlyAmount * 12);
