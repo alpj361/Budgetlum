@@ -89,11 +89,11 @@ export default function PaymentStructureSelector({
   return (
     <View className="mb-6">
       <Text className="text-lg font-semibold text-gray-900 mb-2">
-        ¿Cómo recibes tus pagos?
+        ¿Con qué frecuencia te pagan?
       </Text>
 
       <Text className="text-gray-600 mb-4">
-        Esto nos ayuda a calcular tu ingreso mensual correctamente
+        Selecciona el patrón de pagos que mejor describe tu situación laboral
       </Text>
 
       {/* Educational note */}

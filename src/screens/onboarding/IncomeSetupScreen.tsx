@@ -11,11 +11,12 @@ import IncomeRangeCollector from "../../components/onboarding/IncomeRangeCollect
 import VariableIncomeTypeSelector from "../../components/onboarding/VariableIncomeTypeSelector";
 import PaymentStructureSelector from "../../components/onboarding/PaymentStructureSelector";
 import PaymentAmountConfigurator from "../../components/onboarding/PaymentAmountConfigurator";
+import PaymentDateScheduler from "../../components/onboarding/PaymentDateScheduler";
 import ConversationalGuidance from "../../components/onboarding/ConversationalGuidance";
 import { useUserStore } from "../../state/userStore";
 import { OnboardingStackParamList } from "../../navigation/OnboardingNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { PaymentCycle, IncomeRange, PaymentStructure } from "../../types/user";
+import { PaymentCycle, IncomeRange, PaymentStructure, PaymentSchedule } from "../../types/user";
 import {
   calculateMonthlyIncome,
   createDefaultCycles,
@@ -58,12 +59,13 @@ export default function IncomeSetupScreen() {
   const { updateProfile, addIncome, setOnboardingStep } = useUserStore();
 
   // Flow state
-  const [currentStep, setCurrentStep] = useState<"intro" | "payment-structure" | "stability" | "variable-type" | "amount" | "pattern" | "cycles">("intro");
+  const [currentStep, setCurrentStep] = useState<"intro" | "payment-structure" | "payment-schedule" | "stability" | "variable-type" | "amount" | "pattern" | "cycles">("intro");
 
   // Form data
   const [incomeName, setIncomeName] = useState("Trabajo principal");
   const [frequency, setFrequency] = useState<string>(""); // Legacy support
   const [paymentStructure, setPaymentStructure] = useState<PaymentStructure | null>(null);
+  const [paymentSchedule, setPaymentSchedule] = useState<PaymentSchedule | null>(null);
   const [stabilityPattern, setStabilityPattern] = useState<"consistent" | "seasonal" | "variable" | "">("");
   const [variableType, setVariableType] = useState<"range" | "cycles" | "">("");
 
@@ -99,6 +101,12 @@ export default function IncomeSetupScreen() {
       case "payment-structure":
         if (!paymentStructure) {
           newErrors.paymentStructure = "Selecciona cómo recibes tus pagos";
+        }
+        break;
+
+      case "payment-schedule":
+        if (!paymentSchedule) {
+          newErrors.paymentSchedule = "Selecciona cuándo recibes tus pagos";
         }
         break;
 
@@ -172,30 +180,56 @@ export default function IncomeSetupScreen() {
   const getNextStep = (): string | null => {
     switch (currentStep) {
       case "intro": return "payment-structure";
-      case "payment-structure": return "stability";
+
+      case "payment-structure":
+        // Smart flow based on payment structure
+        if (!paymentStructure) return null;
+
+        // Monthly payments: Skip schedule selection, go straight to stability
+        if (paymentStructure.type === "monthly") {
+          return "stability";
+        }
+
+        // All other frequencies: Need to set specific schedule
+        return "payment-schedule";
+
+      case "payment-schedule": return "stability";
+
       case "stability":
         // Variable/seasonal income needs to choose type first
         return (stabilityPattern === "seasonal" || stabilityPattern === "variable")
           ? "variable-type"
           : "amount";
+
       case "variable-type": return "amount";
+
       case "amount":
-        // For consistent income with certain structures, might go to pattern selection
+        // For consistent income with irregular structure, skip patterns
         if (stabilityPattern === "consistent" && paymentStructure?.type === "irregular") {
           return null; // Irregular goes straight to completion
         }
-        // For variable income with cycles, go to pattern selection
+
+        // For variable income with cycles, might need pattern selection
         if ((stabilityPattern === "seasonal" || stabilityPattern === "variable") && variableType === "cycles") {
+          // Only show pattern selection for multi-payment structures
+          if (paymentStructure && ["bi-monthly", "weekly"].includes(paymentStructure.type)) {
+            return "pattern";
+          }
+          return null; // Simple variable cycles, go to completion
+        }
+
+        // For consistent income with multi-payment structures, might need patterns
+        if (paymentStructure && ["bi-monthly"].includes(paymentStructure.type) && stabilityPattern === "consistent") {
           return "pattern";
         }
-        // For payment structures that support complex patterns
-        if (paymentStructure && ["bi-monthly", "monthly"].includes(paymentStructure.type) && stabilityPattern === "consistent") {
-          return "pattern";
-        }
-        return null; // Simple cases go to completion
+
+        return null; // Most cases go to completion
+
       case "pattern":
         return paymentPattern === "complex" ? "cycles" : null;
+
       case "cycles": return null;
+
       default: return null;
     }
   };
@@ -226,6 +260,7 @@ export default function IncomeSetupScreen() {
           name: incomeName.trim(),
           frequency: frequency as any,
           paymentStructure: paymentStructure,
+          paymentSchedule: paymentSchedule,
           stabilityPattern: "consistent",
           isActive: true,
           isPrimary: true,
@@ -260,6 +295,7 @@ export default function IncomeSetupScreen() {
           name: incomeName.trim(),
           frequency: frequency as any,
           paymentStructure: paymentStructure,
+          paymentSchedule: paymentSchedule,
           stabilityPattern: stabilityPattern,
           isActive: true,
           isPrimary: true,
@@ -309,7 +345,8 @@ export default function IncomeSetupScreen() {
   const handleBack = () => {
     const previousSteps = {
       "payment-structure": "intro",
-      "stability": "payment-structure",
+      "payment-schedule": "payment-structure",
+      "stability": paymentStructure?.type === "monthly" ? "payment-structure" : "payment-schedule",
       "variable-type": "stability",
       "amount": (stabilityPattern === "seasonal" || stabilityPattern === "variable") ? "variable-type" : "stability",
       "pattern": "amount",
@@ -336,11 +373,19 @@ export default function IncomeSetupScreen() {
   const handlePaymentStructureChange = (structure: PaymentStructure) => {
     setPaymentStructure(structure);
     setFrequency(structure.type); // Set legacy frequency for backward compatibility
+    setPaymentSchedule(null); // Reset schedule when structure changes
     setPaymentAmounts([]);
     setPaymentPattern("");
     setCycles([]);
     if (errors.paymentStructure) {
       setErrors({ ...errors, paymentStructure: "" });
+    }
+  };
+
+  const handlePaymentScheduleChange = (schedule: PaymentSchedule) => {
+    setPaymentSchedule(schedule);
+    if (errors.paymentSchedule) {
+      setErrors({ ...errors, paymentSchedule: "" });
     }
   };
 
@@ -417,6 +462,9 @@ export default function IncomeSetupScreen() {
       case "payment-structure":
         return !!paymentStructure;
 
+      case "payment-schedule":
+        return !!paymentSchedule;
+
       case "stability":
         return !!stabilityPattern;
 
@@ -460,12 +508,13 @@ export default function IncomeSetupScreen() {
   // Memoized validation to prevent infinite re-renders
   const canProceed = React.useMemo(() => {
     return validateCurrentStepSilent();
-  }, [currentStep, incomeName, paymentStructure, stabilityPattern, variableType, incomeAmount, paymentAmounts, incomeRange, paymentPattern, cycles]);
+  }, [currentStep, incomeName, paymentStructure, paymentSchedule, stabilityPattern, variableType, incomeAmount, paymentAmounts, incomeRange, paymentPattern, cycles]);
 
   const getStepTitle = (): string => {
     switch (currentStep) {
       case "intro": return "Hablemos de tu ingreso principal";
-      case "payment-structure": return "¿Cómo recibes tus pagos?";
+      case "payment-structure": return "¿Con qué frecuencia te pagan?";
+      case "payment-schedule": return "¿Qué días específicos te pagan?";
       case "stability": return "¿Cómo es tu ingreso mes a mes?";
       case "variable-type": return "¿Cómo funciona tu variación?";
       case "amount":
@@ -531,6 +580,25 @@ export default function IncomeSetupScreen() {
             {errors.paymentStructure && (
               <Text className="text-red-500 text-sm mt-2 ml-1">
                 {errors.paymentStructure}
+              </Text>
+            )}
+          </View>
+        );
+
+      case "payment-schedule":
+        return (
+          <View className="flex-1">
+            {paymentStructure && (
+              <PaymentDateScheduler
+                paymentStructure={paymentStructure}
+                selectedSchedule={paymentSchedule}
+                onScheduleChange={handlePaymentScheduleChange}
+              />
+            )}
+
+            {errors.paymentSchedule && (
+              <Text className="text-red-500 text-sm mt-2 ml-1">
+                {errors.paymentSchedule}
               </Text>
             )}
           </View>

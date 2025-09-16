@@ -62,12 +62,21 @@ export interface PaymentStructure {
   description: string; // Human readable description
 }
 
+export interface PaymentSchedule {
+  type: "fixed-dates" | "day-pattern" | "custom";
+  dates?: number[]; // Days of month (1-31)
+  pattern?: "first-friday" | "last-friday" | "every-friday" | "bi-weekly-friday";
+  startDate?: Date;
+  description: string;
+}
+
 export interface IncomeSource {
   id: string;
   name: string;
   amount: number; // Base amount (for simple mode) or total estimated monthly
   frequency: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "irregular"; // Legacy support
   paymentStructure?: PaymentStructure; // New structured approach
+  paymentSchedule?: PaymentSchedule; // Specific payment dates/patterns
   nextPayDate?: string;
   isActive: boolean;
   isPrimary: boolean;
