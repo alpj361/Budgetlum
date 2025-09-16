@@ -88,13 +88,6 @@ export default function PaymentStructureSelector({
 }: PaymentStructureSelectorProps) {
   return (
     <View className="mb-6">
-      <Text className="text-lg font-semibold text-gray-900 mb-2">
-        ¿Con qué frecuencia te pagan?
-      </Text>
-
-      <Text className="text-gray-600 mb-4">
-        Selecciona el patrón de pagos que mejor describe tu situación laboral
-      </Text>
 
       {/* Educational note */}
       <View className="p-4 bg-blue-50 rounded-xl mb-4">
