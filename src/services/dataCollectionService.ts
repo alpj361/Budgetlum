@@ -119,7 +119,23 @@ IMPORTANTE: Responde SOLO con el JSON válido, sin texto adicional.`;
         maxTokens: 2048
       });
 
-      const parsed = JSON.parse(response.content);
+      // Clean the response content to extract JSON
+      let jsonContent = response.content.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/```\s*$/, '');
+      }
+
+      // Try to find JSON object between braces
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+
+      const parsed = JSON.parse(jsonContent);
       return parsed.suggestions || [];
     } catch (error) {
       console.error('Error generating budget suggestions:', error);

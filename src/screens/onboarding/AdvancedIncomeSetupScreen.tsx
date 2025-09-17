@@ -41,7 +41,7 @@ export default function AdvancedIncomeSetupScreen() {
     {
       id: "1",
       type: "bussy",
-      content: "¡Hola! Soy Bussy, tu asistente financiero 🤖\n\nVamos a configurar tus ingresos de manera inteligente. Háblame sobre todas las fuentes de dinero que tienes:\n\n• ¿Tienes trabajo fijo o freelance?\n• ¿Recibes dinero de familiares?\n• ¿Tienes algún negocio?\n• ¿Rentas algo?\n\nCuéntame todo, yo me encargo de organizarlo 😊",
+      content: "¡Hola! 👋 Soy Bussy, tu asistente financiero personal. ¡Me da mucho gusto conocerte! 🤗\n\nEstoy aquí para ayudarte a configurar tus ingresos de manera súper fácil y personalizada. No te preocupes si tienes una situación financiera compleja - ¡esa es mi especialidad! 💪\n\n💰 **Cuéntame sobre tu dinero**:\n• ¿Trabajas en alguna empresa o eres independiente?\n• ¿Recibes remesas o apoyo familiar?\n• ¿Tienes algún negocio propio o ventas?\n• ¿Rentas algo o tienes otros ingresos?\n\n**No importa si es complicado** - puedes contarme todo como te sale naturalmente. Yo voy a entender y organizar todo perfectamente 😊\n\n¿Por dónde empezamos? 🚀",
       timestamp: new Date()
     }
   ]);

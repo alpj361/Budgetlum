@@ -55,9 +55,25 @@ Si no puedes extraer un campo, colócalo en null.
 JSON:`;
 
     const response = await getOpenAIChatResponse(prompt);
-    
+
     try {
-      const parsed = JSON.parse(response.content.trim());
+      // Clean the response content to extract JSON
+      let jsonContent = response.content.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/```\s*$/, '');
+      }
+
+      // Try to find JSON object between braces
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+
+      const parsed = JSON.parse(jsonContent);
       // Validate the category
       if (parsed.category && !(EXPENSE_CATEGORIES as string[]).includes(parsed.category)) {
         parsed.category = "Otros";

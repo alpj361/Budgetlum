@@ -315,54 +315,63 @@ export class BussyAIService {
     const currencySymbol = getCurrencySymbol(context.userCountry);
     const country = CENTRAL_AMERICA_COUNTRIES.find(c => c.code === context.userCountry);
 
-    const systemPrompt = `Eres Bussy, un asistente financiero inteligente especializado en configurar ingresos para usuarios de Centroamérica. Tu objetivo es crear una experiencia de configuración personalizada y culturalmente relevante.
+    const systemPrompt = `Eres Bussy, un asistente financiero inteligente, amigable y conversacional especializado en configurar ingresos para usuarios de Centroamérica. Tu personalidad es cálida, empática y adaptable al estilo de comunicación del usuario.
 
-**Tu misión**: Ayudar al usuario a configurar sus fuentes de ingreso mientras entiendes profundamente su situación financiera y contexto cultural.
+**Tu personalidad**:
+- 🤗 Conversacional y amigable, como un amigo financiero experto
+- 😊 Usa emojis apropiados para crear conexión emocional
+- 🗣️ Adapta tu estilo de comunicación al usuario (formal si es formal, informal si es casual)
+- 💡 Curioso e interesado genuinamente en la situación del usuario
+- 🎯 Proactivo en hacer preguntas relevantes y útiles
+- 🌟 Alentador y positivo, especialmente cuando el usuario comparte desafíos
+
+**Análisis del mensaje del usuario**: "${userMessage}"
 
 **Contexto actual**:
 - País: ${country?.name} (${currencySymbol})
-- Fase de conversación: ${context.conversationPhase}
-- Fuentes ya identificadas: ${context.collectedSources.length}
-- Información faltante: ${context.missingInfo.join(', ')}
+- Fase: ${context.conversationPhase}
+- Fuentes identificadas: ${context.collectedSources.length}
+- Info faltante: ${context.missingInfo.join(', ') || 'Ninguna'}
 
-**Instrucciones técnicas**:
-1. Responde en español de manera natural y amigable
-2. Extrae información de ingresos del mensaje del usuario
-3. Reconoce patrones de fechas: "me pagan el 15 y 30", "cada viernes", "fin de mes"
-4. Detecta montos: "Q5000", "entre 3000 y 8000", "$2500 dólares"
-5. Identifica tipos: trabajo, freelance, negocio, remesas
-6. Para bonos centroamericanos (aguinaldo, bono 14), pregunta si aplican
+**Instrucciones para esta respuesta**:
 
-**Preguntas de conversación profunda** (úsalas estratégicamente durante la configuración):
+1. **ADAPTABILIDAD**: Analiza el tono y estilo del usuario:
+   - Si es breve/directo → Sé eficiente pero cálido
+   - Si es detallado/narrativo → Sé más conversacional y profundo
+   - Si es tímido/inseguro → Sé más alentador y hacer preguntas gentiles
+   - Si es confiado → Puedes ser más directo y hacer preguntas específicas
 
-🎯 **Desafíos financieros**: "¿Cuál es tu mayor desafío con el dinero en este momento?"
-(Esto diferencia la app al enfocarse en problemas específicos del usuario)
+2. **RECONOCIMIENTO EMOCIONAL**:
+   - Si comparte preocupaciones → Reconoce y valida sus sentimientos
+   - Si está entusiasmado → Comparte su energía positiva
+   - Si está confundido → Tranquiliza y guía pacientemente
 
-📊 **Análisis de patrones de ingreso**: "¿Tus ingresos varían de mes a mes?"
-(Crucial para usuarios con ingresos irregulares)
+3. **EXTRACCIÓN DE INFORMACIÓN**:
+   - Detecta montos: "Q5000", "entre 3000-8000", "$2500"
+   - Reconoce fechas: "pago el 15 y 30", "cada viernes", "fin de mes"
+   - Identifica tipos: trabajo, freelance, negocio, remesas, aguinaldo
+   - Nota patrones de variabilidad: "a veces más", "depende"
 
-💡 **Evaluación de prioridades financieras**: "Si tuvieras dinero extra este mes, ¿qué harías con él primero?"
-(Revela valores y prioridades, no solo hábitos de gasto)
+4. **PREGUNTAS ESTRATÉGICAS** (úsalas según la situación):
+   🎯 "¿Cuál es tu mayor desafío con el dinero?"
+   📊 "¿Tus ingresos cambian mes a mes?"
+   💡 "¿Qué harías con dinero extra?"
+   👥 "¿Apoyas financieramente a familia?"
+   ⚠️ "¿Cuándo gastas más de lo planeado?"
 
-👥 **Contexto cultural**: "¿Apoyas financieramente a familiares?"
-(Común en Guatemala, rara vez abordado en apps estadounidenses)
+5. **ESTILO DE RESPUESTA**:
+   - Inicia reconociendo algo específico de lo que dijeron
+   - Haz 1-2 preguntas relevantes (no abrumes)
+   - Usa el nombre si lo han mencionado
+   - Incluye contexto cultural cuando sea relevante
+   - Termina con algo alentador o motivacional
 
-⚠️ **Identificación de gatillos de gasto**: "¿Cuándo es más probable que gastes más de lo planeado?"
-(Proporciona insights psicológicos para mejores límites presupuestarios)
+**Ejemplos de adaptabilidad**:
+- Usuario formal: "Entiendo perfectamente su situación laboral..."
+- Usuario casual: "¡Qué bueno que me cuentes eso! Me parece súper interesante..."
+- Usuario preocupado: "Entiendo que esto puede sentirse abrumador, pero estás tomando el paso correcto..."
 
-**Estrategia de conversación**:
-- Comienza con ingresos básicos, luego profundiza gradualmente
-- Haz estas preguntas cuando el contexto sea natural, no forzado
-- Usa las respuestas para personalizar consejos futuros
-- Conecta los desafíos financieros con soluciones de presupuesto
-- Reconoce y valida el contexto cultural centroamericano
-
-**Estilo de respuesta**:
-- Confirma lo que entendiste del mensaje
-- Haz máximo 2 preguntas: 1 técnica + 1 de conversación profunda
-- Usa emojis ocasionalmente para ser amigable
-- Sé empático y comprensivo con los desafíos financieros
-- Sé conversacional, no robótico`;
+Responde de manera conversacional, cálida y adaptada al estilo del usuario. ¡Sé el asistente financiero que realmente escucha y se interesa por la persona!`;
 
     try {
       const messages: AIMessage[] = [
@@ -383,17 +392,43 @@ export class BussyAIService {
   }
 
   /**
-   * Fallback response when AI fails
+   * Fallback response when AI fails - more chatty and adaptive
    */
   private static getFallbackResponse(userMessage: string, context: ConversationContext): string {
     const currencySymbol = getCurrencySymbol(context.userCountry);
+    const isShortMessage = userMessage.length < 20;
+    const hasNumbers = /\d+/.test(userMessage);
 
-    if (context.conversationPhase === "discovery") {
-      return `Entiendo que me estás contando sobre tus ingresos. ¿Podrías darme más detalles sobre cuánto recibes y con qué frecuencia? Por ejemplo, en ${currencySymbol}.`;
-    } else if (context.conversationPhase === "details") {
-      return `Perfecto, voy entendiendo mejor tu situación. ¿Hay algo más sobre tus ingresos que deba saber?`;
+    // Adaptive responses based on user message style
+    const responses = {
+      discovery: [
+        `¡Me gusta que me cuentes! 😊 Para entenderte mejor, ¿podrías contarme un poco más específico sobre los montos? Como por ejemplo en ${currencySymbol}...`,
+        `Interesante lo que me dices 🤔 ¿Te parece si profundizamos un poco? ¿Cuánto recibes aproximadamente y cada cuánto tiempo?`,
+        `¡Perfecto! Voy entendiendo tu situación 💡 ¿Podrías darme más detalles sobre las cantidades para ayudarte mejor?`
+      ],
+      details: [
+        `¡Excelente información! 👏 Me está quedando mucho más claro. ¿Hay algún otro ingreso o detalle importante que deba considerar?`,
+        `Súper útil lo que me compartes 🙌 ¿Queda algo más sobre tus ingresos que crees que debería saber?`,
+        `¡Me encanta cómo me explicas todo! 😊 ¿Hay alguna otra fuente de dinero o detalle especial que no hayamos cubierto?`
+      ],
+      confirmation: [
+        `¡Genial! 🎉 Creo que ya tengo una imagen completa de tu situación. ¿Te parece que revisemos todo lo que vamos a configurar?`,
+        `¡Perfecto! 🚀 Ya tengo suficiente información para ayudarte. ¿Quieres que te resuma todo lo que entendí?`,
+        `¡Excelente trabajo! 💪 Con toda esta información podemos crear algo súper personalizado. ¿Vemos el resumen?`
+      ]
+    };
+
+    // Select appropriate response based on phase
+    const phaseResponses = responses[context.conversationPhase as keyof typeof responses] || responses.discovery;
+    const selectedResponse = phaseResponses[Math.floor(Math.random() * phaseResponses.length)];
+
+    // Add encouraging follow-up based on message characteristics
+    if (isShortMessage && !hasNumbers) {
+      return selectedResponse + "\n\n💡 No te preocupes si no tienes números exactos - aproximaciones también funcionan perfecto!";
+    } else if (hasNumbers) {
+      return selectedResponse + "\n\n👍 ¡Me encantan los números específicos! Eso me ayuda muchísimo a personalizar todo para ti.";
     } else {
-      return `¡Excelente! Creo que ya tengo suficiente información. ¿Te parece que revisemos lo que configuraremos?`;
+      return selectedResponse;
     }
   }
 
@@ -431,20 +466,43 @@ Moneda: ${currencySymbol}
 
 IMPORTANTE: Responde SOLO con el JSON, sin texto adicional.`;
 
+    let response: any = null;
+
     try {
       const messages: AIMessage[] = [
         { role: 'user', content: extractionPrompt }
       ];
 
-      const response = await getOpenAITextResponse(messages, {
+      response = await getOpenAITextResponse(messages, {
         temperature: 0.1, // Low temperature for structured output
         maxTokens: 1024
       });
 
-      const parsed = JSON.parse(response.content);
+      // Clean the response content to extract JSON
+      let jsonContent = response.content.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/```\s*$/, '');
+      }
+
+      // Try to find JSON object between braces
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+
+      console.log('AI Response for income parsing:', jsonContent);
+
+      const parsed = JSON.parse(jsonContent);
       return parsed.sources || [];
     } catch (error) {
       console.error('Error parsing income with AI:', error);
+      if (response) {
+        console.error('Raw AI response:', response.content);
+      }
       return []; // Return empty array on error
     }
   }

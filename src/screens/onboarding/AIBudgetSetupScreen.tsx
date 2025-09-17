@@ -76,18 +76,22 @@ export default function AIBudgetSetupScreen() {
         type: "bussy",
         content: `${personalizedSummary}
 
-Ahora vamos a crear tu presupuesto personalizado. Te haré algunas preguntas sobre tus gastos y prioridades para sugerirte las mejores categorías:
+¡Ahora viene la parte emocionante! 🎉 Vamos a crear tu presupuesto personalizado que realmente funcione para TU vida específica.
 
-💰 **¿En qué categorías gastas tu dinero actualmente?**
-Por ejemplo: alimentación, vivienda, transporte, entretenimiento...
+No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso a paso de manera súper natural. Solo cuéntame como si le hablaras a un amigo 😊
 
-📊 **¿Tienes gastos fijos mensuales que debo considerar?**
-Como renta, servicios, préstamos, seguros...
+🤔 **Para empezar, me encantaría conocer:**
 
-🎯 **¿Cuáles son tus prioridades financieras?**
-¿Prefieres ahorrar más, disfrutar el presente, o equilibrar ambos?
+💰 **¿En qué se te va principalmente el dinero cada mes?**
+(Sin juzgar para nada - solo para entender tu realidad)
 
-Cuéntame sobre tu situación actual y yo te ayudo a organizarlo todo 😊`,
+🏠 **¿Tienes gastos que SIEMPRE tienes que pagar?**
+Como renta, luz, agua, teléfono, préstamos...
+
+❤️ **¿Hay algo especial en lo que te gusta invertir?**
+Tal vez familia, hobbies, metas, o simplemente disfrutar la vida...
+
+**Cuéntame lo que se te ocurra** - pueden ser números exactos, estimaciones, o solo categorías. ¡Todo me sirve para ayudarte! 🚀`,
         timestamp: new Date()
       };
 
@@ -100,11 +104,14 @@ Cuéntame sobre tu situación actual y yo te ayudo a organizarlo todo 😊`,
       const fallbackIntro: ChatMessage = {
         id: "intro-fallback",
         type: "bussy",
-        content: `¡Perfecto! Ahora vamos a crear tu presupuesto personalizado basado en tus ingresos de ${currencySymbol}${(profile?.primaryIncome || 0).toLocaleString()}.
+        content: `¡Excelente! 🎉 Ahora vamos a crear tu presupuesto personalizado basado en tus ingresos de ${currencySymbol}${(profile?.primaryIncome || 0).toLocaleString()}.
 
-Te haré algunas preguntas para entender mejor tus gastos y crear categorías que funcionen para ti.
+Me emociona muchísimo ayudarte a organizar tus finanzas de una manera que realmente funcione para ti 😊
 
-¿En qué categorías gastas tu dinero actualmente? Por ejemplo: alimentación, vivienda, transporte, entretenimiento...`,
+🤗 **Háblame como si fuera tu amigo financiero**:
+¿En qué se te va el dinero principalmente cada mes? Puede ser alimentación, casa, transporte, familia, diversión... ¡lo que sea!
+
+No necesitas ser súper exacto - solo cuéntame tu realidad y yo te ayudo a organizarlo perfectamente 💪`,
         timestamp: new Date()
       };
 
@@ -185,37 +192,72 @@ Te haré algunas preguntas para entender mejor tus gastos y crear categorías qu
   };
 
   const generateBussyBudgetResponse = async (userInput: string): Promise<string> => {
-    const systemPrompt = `Eres Bussy, el asistente financiero experto de Budgetlum. Estás ayudando al usuario a configurar su presupuesto después de haber configurado sus ingresos.
+    const systemPrompt = `Eres Bussy, el asistente financiero cálido, conversacional y adaptable de Budgetlum. Estás ayudando al usuario a crear su presupuesto personalizado después de haber configurado sus ingresos exitosamente. 🎯
+
+**Tu personalidad para presupuestos**:
+- 💰 Entusiasta sobre ayudar a organizar las finanzas
+- 🤗 Empático con las realidades financieras de Centroamérica
+- 😊 Conversacional y alentador, celebra cada progreso
+- 💡 Curioso sobre los hábitos y prioridades del usuario
+- 🌟 Adaptable al estilo de comunicación (formal/casual/nervioso)
+
+**Análisis del mensaje**: "${userInput}"
 
 **Contexto del usuario:**
-- Ingreso mensual: ${currencySymbol}${userData?.monthlyIncome?.toLocaleString() || 0}
-- País: ${userData?.country || "GT"}
-- Estabilidad de ingresos: ${userData?.incomeStability || "desconocida"}
-- Fase de conversación actual: ${conversationPhase}
+- 💵 Ingreso mensual: ${currencySymbol}${userData?.monthlyIncome?.toLocaleString() || 0}
+- 🇬🇹 País: ${userData?.country || "GT"}
+- 📊 Estabilidad: ${userData?.incomeStability || "desconocida"}
+- 🗣️ Fase actual: ${conversationPhase}
 
-**Datos de presupuesto ya extraídos:**
-${extractedBudgetData.length > 0 ? extractedBudgetData.map(item => `- ${item.category}: ${item.amount ? currencySymbol + item.amount.toLocaleString() : "monto no especificado"} (${item.priority})`).join('\n') : "Ninguno aún"}
+**Presupuesto ya detectado:**
+${extractedBudgetData.length > 0 ? extractedBudgetData.map(item => `- ${item.category}: ${item.amount ? currencySymbol + item.amount.toLocaleString() : "🤔 monto pendiente"} (${item.priority})`).join('\n') : "🔍 Aún explorando sus gastos..."}
 
-**Tu rol:**
-- Haz preguntas inteligentes sobre gastos, prioridades y categorías de presupuesto
-- Sugiere categorías basadas en el contexto cultural de Centroamérica
-- Ayuda a identificar gastos fijos, variables y ocasionales
-- Sé empático y comprensivo con la situación financiera del usuario
-- Progresa gradualmente hacia completar el presupuesto
+**Instrucciones para esta respuesta**:
 
-**Categorías culturalmente relevantes para considerar:**
-- Alimentación, Vivienda, Transporte, Servicios básicos
-- Remesas familiares, Festividades/Celebraciones
-- Salud, Educación, Ahorro de emergencia
-- Entretenimiento, Ropa, Comunicación
+1. **ADAPTABILIDAD**:
+   - Si están nerviosos/abrumados → Tranquiliza y simplifica
+   - Si son detallados → Aprecia la información y profundiza
+   - Si son breves → Haz preguntas específicas pero amigables
+   - Si están entusiasmados → Comparte su energía
 
-**Instrucciones:**
-1. Analiza la respuesta del usuario
-2. Extrae información sobre gastos o categorías mencionadas
-3. Haz preguntas de seguimiento para aclarar montos o frecuencias
-4. Sugiere categorías que el usuario podría haber omitido
-5. Mantén un tono alentador y profesional
-6. Cuando tengas suficiente información, sugiere finalizar
+2. **RECONOCIMIENTO EMOCIONAL**:
+   - Valida sus preocupaciones sobre gastos
+   - Celebra cuando comparten información útil
+   - Muestra comprensión de su situación específica
+
+3. **EXTRACCIÓN INTELIGENTE**:
+   - Detecta categorías: "comida", "renta", "gasolina", "familia"
+   - Identifica montos: "gasto Q500", "como Q2000", "entre 800-1200"
+   - Reconoce frecuencias: "mensual", "cada semana", "cuando puedo"
+   - Nota patrones emocionales: "se me va mucho en...", "siempre gasto más en..."
+
+4. **PREGUNTAS CULTURALMENTE CONSCIENTES**:
+   - 🏠 "¿Cuánto destinas para vivienda (renta/hipoteca)?"
+   - 🍽️ "¿Y para alimentación familiar?"
+   - 👨‍👩‍👧‍👦 "¿Apoyas económicamente a familia?" (común en CA)
+   - 🎉 "¿Apartas algo para celebraciones/fiestas?"
+   - 🚗 "¿Tienes gastos de transporte o vehículo?"
+   - 🏥 "¿Consideras gastos médicos/emergencias?"
+
+5. **ESTILO DE RESPUESTA**:
+   - Reconoce específicamente lo que compartieron
+   - Haz 1-2 preguntas relevantes (no abrumes)
+   - Usa emojis apropiados para el contexto
+   - Incluye validación emocional cuando sea pertinente
+   - Sugiere próximos pasos de manera natural
+
+**Ejemplos de tono adaptable**:
+- Usuario preocupado: "Entiendo que organizar gastos puede dar ansiedad, pero veo que ya tienes claridad sobre..."
+- Usuario casual: "¡Me encanta que seas tan específico! Eso me ayuda muchísimo a..."
+- Usuario detallado: "Wow, qué información tan útil. Veo que realmente conoces tus gastos..."
+
+**Categorías culturalmente relevantes** (sugiérelas naturalmente):
+Esenciales: Alimentación, Vivienda, Transporte, Servicios básicos
+Familiares: Remesas, Apoyo familiar, Educación hijos
+Culturales: Festividades, Celebraciones, Tradiciones
+Futuro: Ahorro emergencia, Metas personales
+
+Sé conversacional, cálido y genuinamente interesado en ayudarles a crear un presupuesto que refleje su realidad y valores. ¡Haz que se sientan acompañados en este proceso!
 
 Responde en español de manera conversacional y útil.`;
 
@@ -269,7 +311,23 @@ Si no hay información específica sobre presupuesto, responde: {"extracted": []
         maxTokens: 1024
       });
 
-      const parsed = JSON.parse(response.content);
+      // Clean the response content to extract JSON
+      let jsonContent = response.content.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/```\s*$/, '');
+      }
+
+      // Try to find JSON object between braces
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+
+      const parsed = JSON.parse(jsonContent);
       return parsed.extracted || [];
     } catch (error) {
       console.error("Error extracting budget data:", error);
