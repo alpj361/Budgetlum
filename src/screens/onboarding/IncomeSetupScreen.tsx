@@ -58,6 +58,11 @@ export default function IncomeSetupScreen() {
   const navigation = useNavigation<IncomeSetupScreenNavigationProp>();
   const { updateProfile, addIncome, setOnboardingStep } = useUserStore();
 
+  // Redirect to new path selection screen
+  React.useEffect(() => {
+    navigation.replace("IncomePathSelection");
+  }, [navigation]);
+
   // Flow state
   const [currentStep, setCurrentStep] = useState<"intro" | "payment-structure" | "payment-schedule" | "stability" | "variable-type" | "amount" | "pattern" | "cycles">("intro");
 

@@ -24,6 +24,11 @@ export interface UserProfile {
   preferredBudgetPeriod: "monthly" | "bi-monthly" | "quarterly" | "";
   enableBussyGuidance: boolean;
 
+  // Central America features
+  country?: string; // Country code (MX, GT, etc.)
+  hasSetupIncome?: boolean;
+  incomeSetupPath?: "simple" | "advanced";
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -73,8 +78,9 @@ export interface PaymentSchedule {
 export interface IncomeSource {
   id: string;
   name: string;
+  type?: "salary" | "freelance" | "business" | "rental" | "remittance" | "other";
   amount: number; // Base amount (for simple mode) or total estimated monthly
-  frequency: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "irregular"; // Legacy support
+  frequency: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "irregular" | "project" | "seasonal"; // Enhanced with new types
   paymentStructure?: PaymentStructure; // New structured approach
   paymentSchedule?: PaymentSchedule; // Specific payment dates/patterns
   nextPayDate?: string;
@@ -82,13 +88,23 @@ export interface IncomeSource {
   isPrimary: boolean;
   description?: string;
   // Enhanced payment cycle support
-  paymentPattern: "simple" | "complex";
+  paymentPattern?: "simple" | "complex";
   cycles?: PaymentCycle[]; // For complex patterns
   // Income stability analysis
-  stabilityPattern: "consistent" | "seasonal" | "variable";
+  stabilityPattern?: "consistent" | "seasonal" | "variable";
   incomeRange?: IncomeRange; // For variable income
-  baseAmount: number; // Conservative amount for budgeting
-  isFoundational: boolean; // Primary reliable income for budget base
+  baseAmount?: number; // Conservative amount for budgeting
+  isFoundational?: boolean; // Primary reliable income for budget base
+  // Central America features
+  country?: string;
+  payDate?: number; // Day of month for simple payment schedules
+  takesHomePay?: boolean; // Whether amount is after taxes
+  bonuses?: any[]; // Country-specific bonuses
+  annualBonusTotal?: number;
+  // Variable income support
+  minAmount?: number;
+  maxAmount?: number;
+  isVariable?: boolean;
 }
 
 export type OnboardingStep =

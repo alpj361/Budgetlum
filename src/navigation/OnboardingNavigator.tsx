@@ -6,6 +6,9 @@ import { OnboardingStep } from "../types/user";
 import WelcomeScreen from "../screens/onboarding/WelcomeScreen";
 import PersonalInfoScreen from "../screens/onboarding/PersonalInfoScreen";
 import IncomeSetupScreen from "../screens/onboarding/IncomeSetupScreen";
+import IncomePathSelectionScreen from "../screens/onboarding/IncomePathSelectionScreen";
+import SimpleIncomeSetupScreen from "../screens/onboarding/SimpleIncomeSetupScreen";
+import AdvancedIncomeSetupScreen from "../screens/onboarding/AdvancedIncomeSetupScreen";
 import ExpenseProfileScreen from "../screens/onboarding/ExpenseProfileScreen";
 import GoalsScreen from "../screens/onboarding/GoalsScreen";
 import BudgetPreferencesScreen from "../screens/onboarding/BudgetPreferencesScreen";
@@ -15,6 +18,9 @@ export type OnboardingStackParamList = {
   Welcome: undefined;
   PersonalInfo: undefined;
   IncomeSetup: undefined;
+  IncomePathSelection: undefined;
+  SimpleIncomeSetup: undefined;
+  AdvancedIncomeSetup: undefined;
   ExpenseProfile: undefined;
   Goals: undefined;
   BudgetPreferences: undefined;
@@ -36,6 +42,9 @@ export default function OnboardingNavigator() {
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
       <Stack.Screen name="IncomeSetup" component={IncomeSetupScreen} />
+      <Stack.Screen name="IncomePathSelection" component={IncomePathSelectionScreen} />
+      <Stack.Screen name="SimpleIncomeSetup" component={SimpleIncomeSetupScreen} />
+      <Stack.Screen name="AdvancedIncomeSetup" component={AdvancedIncomeSetupScreen} />
       <Stack.Screen name="ExpenseProfile" component={ExpenseProfileScreen} />
       <Stack.Screen name="Goals" component={GoalsScreen} />
       <Stack.Screen name="BudgetPreferences" component={BudgetPreferencesScreen} />
@@ -49,7 +58,7 @@ export const getScreenFromStep = (step: number): keyof OnboardingStackParamList 
   switch (step) {
     case 0: return "Welcome";
     case 1: return "PersonalInfo";
-    case 2: return "IncomeSetup";
+    case 2: return "IncomePathSelection"; // Changed to path selection
     case 3: return "ExpenseProfile";
     case 4: return "Goals";
     case 5: return "BudgetPreferences";
@@ -63,7 +72,10 @@ export const getStepFromScreen = (screen: keyof OnboardingStackParamList): numbe
   switch (screen) {
     case "Welcome": return 0;
     case "PersonalInfo": return 1;
-    case "IncomeSetup": return 2;
+    case "IncomeSetup": return 2; // Legacy support
+    case "IncomePathSelection": return 2;
+    case "SimpleIncomeSetup": return 2;
+    case "AdvancedIncomeSetup": return 2;
     case "ExpenseProfile": return 3;
     case "Goals": return 4;
     case "BudgetPreferences": return 5;
