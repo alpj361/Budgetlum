@@ -455,59 +455,61 @@ IMPORTANTE: Responde SOLO con el JSON, sin texto adicional.`;
   static async parseIncomeFromTextLegacy(
     userMessage: string,
     context: ConversationContext
+  ): Promise<string> {
+    try {
+      // Use the AI parsing to extract data first
+      const extractedData = await this.parseIncomeDataWithAI(userMessage, context);
+      let response = "";
 
-    let response = "";
+      // Acknowledgment of what was understood
+      if (extractedData.length > 0) {
+        const data = extractedData[0];
+        const parts: string[] = [];
+        const currencySymbol = getCurrencySymbol(context.userCountry);
 
-    // Acknowledgment of what was understood
-    if (extractedData.length > 0) {
-      const data = extractedData[0];
-      const parts: string[] = [];
+        if (data.amount) {
+          parts.push(`${currencySymbol}${data.amount.toLocaleString()}`);
+        } else if (data.minAmount && data.maxAmount) {
+          parts.push(`entre ${currencySymbol}${data.minAmount.toLocaleString()} y ${currencySymbol}${data.maxAmount.toLocaleString()}`);
+        }
 
-      if (data.amount) {
-        parts.push(`${data.currency}${data.amount.toLocaleString()}`);
-      } else if (data.minAmount && data.maxAmount) {
-        parts.push(`entre ${data.currency}${data.minAmount.toLocaleString()} y ${data.currency}${data.maxAmount.toLocaleString()}`);
+        if (data.frequency) {
+          const freqText = {
+            monthly: "mensual",
+            "bi-weekly": "quincenal",
+            weekly: "semanal",
+            daily: "diario",
+            project: "por proyecto",
+            seasonal: "por temporadas"
+          }[data.frequency] || data.frequency;
+          parts.push(freqText);
+        }
+
+        if (data.type) {
+          const typeText = {
+            salary: "trabajo",
+            freelance: "freelance",
+            business: "negocio",
+            rental: "renta",
+            remittance: "remesas"
+          }[data.type] || data.type;
+          parts.push(`de ${typeText}`);
+        }
+
+        if (parts.length > 0) {
+          response += `Entiendo, tienes ingresos ${parts.join(" ")}. `;
+        }
       }
 
-      if (data.frequency) {
-        const freqText = {
-          monthly: "mensual",
-          "bi-weekly": "quincenal",
-          weekly: "semanal",
-          daily: "diario",
-          project: "por proyecto",
-          seasonal: "por temporadas"
-        }[data.frequency] || data.frequency;
-        parts.push(freqText);
-      }
+      // Generate follow-up response using AI
+      const bussyResponse = await this.generateBussyResponse(userMessage, context);
+      response += bussyResponse;
 
-      if (data.type) {
-        const typeText = {
-          salary: "trabajo",
-          freelance: "freelance",
-          business: "negocio",
-          rental: "renta",
-          remittance: "remesas"
-        }[data.type] || data.type;
-        parts.push(`de ${typeText}`);
-      }
-
-      if (parts.length > 0) {
-        response += `Entiendo, tienes ingresos ${parts.join(" ")}. `;
-      }
+      return response;
+    } catch (error) {
+      console.error("Error in parseIncomeFromTextLegacy:", error);
+      return "¿Puedes contarme más detalles sobre tus ingresos?";
     }
-
-    // Add follow-up questions
-    if (followUpQuestions.length > 0) {
-      response += followUpQuestions.join(" ");
-    } else if (updatedContext.conversationPhase === "confirmation") {
-      response += this.generateConfirmationSummary(updatedContext);
-    } else {
-      // Default fallback questions
-      response += "¿Puedes contarme más detalles sobre tus ingresos?";
-    }
-
-    return response;
   }
 
   /**
