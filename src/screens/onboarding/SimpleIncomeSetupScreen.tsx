@@ -7,7 +7,7 @@ import SelectionCard from "../../components/onboarding/SelectionCard";
 import { useUserStore } from "../../state/userStore";
 import { OnboardingStackParamList } from "../../navigation/OnboardingNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { CENTRAL_AMERICA_COUNTRIES, getCurrencySymbol, getCountryBonuses, getPayFrequencies } from "../../types/centralAmerica";
+import { CENTRAL_AMERICA_COUNTRIES, getCurrencySymbol, getPayFrequencies } from "../../types/centralAmerica";
 
 type SimpleIncomeSetupNavigationProp = NativeStackNavigationProp<OnboardingStackParamList, "SimpleIncomeSetup">;
 
@@ -36,7 +36,6 @@ export default function SimpleIncomeSetupScreen() {
   // Get country-specific data
   const countryConfig = CENTRAL_AMERICA_COUNTRIES.find(c => c.code === incomeData.country);
   const currencySymbol = getCurrencySymbol(incomeData.country);
-  const countryBonuses = getCountryBonuses(incomeData.country);
   const payFrequencies = getPayFrequencies(incomeData.country);
 
   const validateCurrentStep = (): boolean => {
@@ -94,16 +93,9 @@ export default function SimpleIncomeSetupScreen() {
   };
 
   const submitIncomeData = () => {
-    // Calculate annual bonuses
     const monthlyAmount = parseFloat(incomeData.monthlyAmount);
-    const annualBonuses = countryBonuses.reduce((total, bonus) => {
-      if (bonus.calculation === "monthly_salary") {
-        return total + (monthlyAmount * bonus.months.length);
-      }
-      return total;
-    }, 0);
 
-    // Create income source
+    // Create income source (without bonuses for now)
     const incomeSource = {
       id: "primary-income",
       name: "Ingreso principal",
@@ -114,12 +106,7 @@ export default function SimpleIncomeSetupScreen() {
       isPrimary: true,
       country: incomeData.country,
       payDate: incomeData.payDate,
-      takesHomePay: incomeData.takesHomePay,
-      bonuses: countryBonuses.map(bonus => ({
-        ...bonus,
-        amount: bonus.calculation === "monthly_salary" ? monthlyAmount : bonus.amount || 0
-      })),
-      annualBonusTotal: annualBonuses
+      takesHomePay: incomeData.takesHomePay
     };
 
     // Add income to store
@@ -211,22 +198,6 @@ export default function SimpleIncomeSetupScreen() {
               </Text>
             </View>
 
-            {/* Country-specific bonus preview */}
-            {countryBonuses.length > 0 && (
-              <View className="p-4 bg-green-50 rounded-xl">
-                <Text className="text-green-800 font-medium mb-2">
-                  🎁 Bonos incluidos en {countryConfig?.name}:
-                </Text>
-                {countryBonuses.map(bonus => (
-                  <Text key={bonus.id} className="text-green-700 text-sm">
-                    • {bonus.name} - {bonus.description}
-                  </Text>
-                ))}
-                <Text className="text-green-700 text-xs mt-2">
-                  Los configuraremos automáticamente según las leyes laborales.
-                </Text>
-              </View>
-            )}
           </View>
         );
 
@@ -340,22 +311,13 @@ export default function SimpleIncomeSetupScreen() {
     }
   };
 
-  // Calculate estimated monthly with bonuses
-  const getEstimatedMonthlyWithBonuses = (): number => {
+  // Get base monthly amount for preview
+  const getBaseMonthlyAmount = (): number => {
     if (!incomeData.monthlyAmount) return 0;
-
-    const monthlyAmount = parseFloat(incomeData.monthlyAmount);
-    const annualBonuses = countryBonuses.reduce((total, bonus) => {
-      if (bonus.calculation === "monthly_salary") {
-        return total + (monthlyAmount * bonus.months.length);
-      }
-      return total;
-    }, 0);
-
-    return monthlyAmount + (annualBonuses / 12);
+    return parseFloat(incomeData.monthlyAmount);
   };
 
-  const estimatedWithBonuses = getEstimatedMonthlyWithBonuses();
+  const baseMonthlyAmount = getBaseMonthlyAmount();
 
   const canProceed = React.useMemo(() => {
     switch (currentStep) {
@@ -388,19 +350,13 @@ export default function SimpleIncomeSetupScreen() {
         {renderStepContent()}
 
         {/* Income Preview */}
-        {estimatedWithBonuses > 0 && currentStep !== "amount" && (
+        {baseMonthlyAmount > 0 && currentStep !== "amount" && (
           <View className="mt-6 p-4 bg-green-50 rounded-xl">
             <Text className="text-green-800 font-medium mb-1">
-              ✅ Ingreso mensual estimado:
+              ✅ Ingreso mensual configurado:
             </Text>
             <Text className="text-green-700 text-sm">
-              {currencySymbol}{parseFloat(incomeData.monthlyAmount).toLocaleString()} base
-              {countryBonuses.length > 0 && (
-                <>
-                  <Text> + {currencySymbol}{(estimatedWithBonuses - parseFloat(incomeData.monthlyAmount)).toLocaleString()} bonos/mes</Text>
-                  <Text className="font-medium"> = {currencySymbol}{estimatedWithBonuses.toLocaleString()} total</Text>
-                </>
-              )}
+              {currencySymbol}{baseMonthlyAmount.toLocaleString()}
             </Text>
           </View>
         )}
