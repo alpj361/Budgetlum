@@ -8,6 +8,7 @@ import { useUserStore } from "../../state/userStore";
 import { OnboardingStackParamList } from "../../navigation/OnboardingNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { CENTRAL_AMERICA_COUNTRIES, getCurrencySymbol } from "../../types/centralAmerica";
+import { BussyAIService, IntelligentIncomeData, ConversationContext } from "../../services/bussyAIService";
 
 type AdvancedIncomeSetupNavigationProp = NativeStackNavigationProp<OnboardingStackParamList, "AdvancedIncomeSetup">;
 
@@ -46,89 +47,21 @@ export default function AdvancedIncomeSetupScreen() {
   ]);
 
   const [currentInput, setCurrentInput] = useState("");
-  const [parsedSources, setParsedSources] = useState<ParsedIncomeSource[]>([]);
+  const [parsedSources, setParsedSources] = useState<IntelligentIncomeData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [conversationPhase, setConversationPhase] = useState<"initial" | "details" | "confirmation">("initial");
+  const [conversationContext, setConversationContext] = useState<ConversationContext>({
+    collectedSources: [],
+    missingInfo: [],
+    conversationPhase: "discovery",
+    userCountry: profile?.country || "GT",
+    totalConfidence: 0
+  });
 
   // Get country-specific data
   const countryConfig = CENTRAL_AMERICA_COUNTRIES.find(c => c.code === (profile?.country || "GT"));
   const currencySymbol = getCurrencySymbol(profile?.country || "GT");
 
-  // Simulate AI processing for income parsing
-  const parseIncomeFromText = (text: string): ParsedIncomeSource[] => {
-    const sources: ParsedIncomeSource[] = [];
-    const lowerText = text.toLowerCase();
-
-    // Salary detection
-    if (lowerText.includes("trabajo") || lowerText.includes("salario") || lowerText.includes("empleo")) {
-      const amountMatch = text.match(/(\d+(?:,\d{3})*(?:\.\d{2})?)/);
-      sources.push({
-        name: "Trabajo principal",
-        type: "salary",
-        amount: amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : undefined,
-        frequency: "monthly",
-        isVariable: false,
-        confidence: 0.9
-      });
-    }
-
-    // Freelance detection
-    if (lowerText.includes("freelance") || lowerText.includes("proyecto") || lowerText.includes("consulta")) {
-      sources.push({
-        name: "Trabajo freelance",
-        type: "freelance",
-        frequency: "project",
-        isVariable: true,
-        confidence: 0.85
-      });
-    }
-
-    // Remittance detection
-    if (lowerText.includes("familia") || lowerText.includes("remesa") || lowerText.includes("envío")) {
-      sources.push({
-        name: "Remesas familiares",
-        type: "remittance",
-        frequency: "monthly",
-        isVariable: true,
-        confidence: 0.8
-      });
-    }
-
-    // Business detection
-    if (lowerText.includes("negocio") || lowerText.includes("empresa") || lowerText.includes("venta")) {
-      sources.push({
-        name: "Negocio propio",
-        type: "business",
-        frequency: "monthly",
-        isVariable: true,
-        confidence: 0.75
-      });
-    }
-
-    return sources;
-  };
-
-  const generateBussyResponse = (userMessage: string, phase: string): string => {
-    const lowerMessage = userMessage.toLowerCase();
-
-    if (phase === "initial") {
-      if (lowerMessage.includes("trabajo") || lowerMessage.includes("salario")) {
-        return `Perfecto! Veo que tienes trabajo. Ahora cuéntame:\n\n• ¿Cuánto recibes aproximadamente al mes? (en ${currencySymbol})\n• ¿Te pagan mensual, quincenal o semanal?\n• ¿Es un monto fijo o varía?\n\n¿Tienes alguna otra fuente de ingresos además del trabajo?`;
-      }
-
-      if (lowerMessage.includes("freelance") || lowerMessage.includes("proyecto")) {
-        return `¡Excelente! Trabajo freelance. Dime:\n\n• ¿Qué tipo de proyectos haces?\n• ¿Cuánto sueles ganar por mes? (rango aproximado en ${currencySymbol})\n• ¿En qué épocas del año tienes más trabajo?\n\n¿Solo freelance o tienes otras fuentes de ingreso?`;
-      }
-
-      return `Interesante! Cuéntame más detalles:\n\n• ¿Cuánto dinero recibes aproximadamente?\n• ¿Con qué frecuencia?\n• ¿Es constante o varía según la época?\n\n¿Hay alguna otra fuente de ingresos que deba saber?`;
-    }
-
-    if (phase === "details") {
-      return `Perfecto, voy entendiendo tu situación. \n\nPara completar la configuración, necesito confirmar algunos detalles:\n\n• ¿Los montos que mencionaste son después de impuestos?\n• ¿Hay algún bono especial que recibas? (aguinaldo, bono 14, etc.)\n• ¿Tienes gastos relacionados con este ingreso?\n\n¿Algo más que deba considerar?`;
-    }
-
-    return `¡Listo! He procesado toda tu información. Déjame organizar tus fuentes de ingreso y luego las revisamos juntos. 📊`;
-  };
+  // Use intelligent Bussy AI service
 
   const sendMessage = async () => {
     if (!currentInput.trim() || isProcessing) return;
@@ -144,37 +77,74 @@ export default function AdvancedIncomeSetupScreen() {
     setCurrentInput("");
     setIsProcessing(true);
 
-    // Parse income sources from user input
-    const newSources = parseIncomeFromText(currentInput);
-    if (newSources.length > 0) {
-      setParsedSources(prev => [...prev, ...newSources]);
-    }
+    // Use intelligent Bussy AI processing
+    setTimeout(async () => {
+      try {
+        // Generate intelligent response using real GPT-4o AI
+        const bussyResponse = await BussyAIService.generateBussyResponse(currentInput, conversationContext);
 
-    // Simulate AI processing delay
-    setTimeout(() => {
-      const bussyResponse = generateBussyResponse(currentInput, conversationPhase);
+        // Parse income data using AI
+        const extractedSources = await BussyAIService.parseIncomeDataWithAI(currentInput, conversationContext);
 
-      const bussyMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: "bussy",
-        content: bussyResponse,
-        timestamp: new Date()
-      };
+        // Update state with AI-extracted data
+        if (extractedSources.length > 0) {
+          setParsedSources(prev => {
+            const newSources = [...prev];
+            extractedSources.forEach(newData => {
+              const existingIndex = newSources.findIndex(s =>
+                s.type === newData.type && Math.abs((s.amount || 0) - (newData.amount || 0)) < 100
+              );
 
-      setMessages(prev => [...prev, bussyMessage]);
-      setIsProcessing(false);
+              if (existingIndex >= 0) {
+                // Update existing source
+                newSources[existingIndex] = { ...newSources[existingIndex], ...newData };
+              } else {
+                // Add new source
+                newSources.push(newData);
+              }
+            });
+            return newSources;
+          });
 
-      // Update conversation phase
-      if (conversationPhase === "initial" && newSources.length > 0) {
-        setConversationPhase("details");
-      } else if (conversationPhase === "details") {
-        setConversationPhase("confirmation");
+          // Update conversation context based on new data
+          setConversationContext(prev => ({
+            ...prev,
+            collectedSources: [...prev.collectedSources, ...extractedSources],
+            conversationPhase: extractedSources.length > 0 ? "details" : prev.conversationPhase,
+            totalConfidence: prev.totalConfidence + extractedSources.reduce((sum, s) => sum + (s.confidence || 0), 0)
+          }));
+        }
+
+        // Send Bussy's response
+        const bussyMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: "bussy",
+          content: bussyResponse,
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, bussyMessage]);
+        setIsProcessing(false);
+
+        // Auto-scroll to bottom
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+
+      } catch (error) {
+        console.error("Bussy AI processing error:", error);
+
+        // Fallback response
+        const fallbackMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: "bussy",
+          content: "Perdón, tuve un problema procesando tu mensaje. ¿Puedes intentar de nuevo con más detalles sobre tus ingresos?",
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, fallbackMessage]);
+        setIsProcessing(false);
       }
-
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
     }, 1500);
   };
 
@@ -257,7 +227,11 @@ export default function AdvancedIncomeSetupScreen() {
     );
   };
 
-  const canFinish = parsedSources.length > 0 && conversationPhase === "confirmation";
+  const canFinish = parsedSources.length > 0 && (
+    conversationContext.conversationPhase === "confirmation" ||
+    conversationContext.totalConfidence > 1.5 ||
+    parsedSources.some(s => (s.confidence || 0) > 0.6)
+  );
 
   return (
     <OnboardingContainer

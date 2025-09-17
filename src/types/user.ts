@@ -29,6 +29,10 @@ export interface UserProfile {
   hasSetupIncome?: boolean;
   incomeSetupPath?: "simple" | "advanced";
 
+  // Budget features
+  hasSetupBudget?: boolean;
+  budgetSetupMethod?: "ui" | "ai" | "skip";
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -44,6 +48,32 @@ export interface FinancialGoal {
   priority: "high" | "medium" | "low";
   type: "emergency_fund" | "debt_payoff" | "savings" | "investment" | "purchase" | "other";
   isActive: boolean;
+}
+
+export interface BudgetCategory {
+  id: string;
+  name: string;
+  limit: number;
+  spent: number;
+  priority: "essential" | "important" | "optional";
+  icon?: string;
+  reasoning?: string;
+  isActive: boolean;
+  period: "monthly" | "bi-weekly" | "weekly";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Budget {
+  id: string;
+  name: string;
+  categories: BudgetCategory[];
+  totalLimit: number;
+  totalSpent: number;
+  period: "monthly" | "bi-weekly" | "weekly";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PaymentCycle {

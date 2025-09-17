@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { UserProfile, FinancialGoal, IncomeSource } from "../types/user";
+import { UserProfile, FinancialGoal, IncomeSource, Budget, BudgetCategory } from "../types/user";
 import { calculateMonthlyIncome } from "../utils/incomeCalculations";
 
 interface UserStore {
   userProfile: UserProfile;
   incomes: IncomeSource[];
+  budgets: Budget[];
 
   // Profile actions
   updateProfile: (updates: Partial<UserProfile>) => void;
@@ -20,6 +21,15 @@ interface UserStore {
   deleteIncome: (id: string) => void;
   setPrimaryIncome: (id: string) => void;
 
+  // Budget actions
+  createBudget: (budget: Omit<Budget, "id" | "createdAt" | "updatedAt">) => void;
+  updateBudget: (id: string, updates: Partial<Budget>) => void;
+  deleteBudget: (id: string) => void;
+  setActiveBudget: (id: string) => void;
+  addBudgetCategory: (budgetId: string, category: Omit<BudgetCategory, "id" | "createdAt" | "updatedAt">) => void;
+  updateBudgetCategory: (budgetId: string, categoryId: string, updates: Partial<BudgetCategory>) => void;
+  deleteBudgetCategory: (budgetId: string, categoryId: string) => void;
+
   // Goals actions
   addGoal: (goal: Omit<FinancialGoal, "id">) => void;
   updateGoal: (id: string, updates: Partial<FinancialGoal>) => void;
@@ -29,6 +39,7 @@ interface UserStore {
   getTotalIncome: (frequency?: "monthly" | "yearly") => number;
   getPrimaryIncome: () => IncomeSource | undefined;
   getActiveGoals: () => FinancialGoal[];
+  getActiveBudget: () => Budget | undefined;
   isOnboardingComplete: () => boolean;
 
   // Maintenance
@@ -60,6 +71,7 @@ export const useUserStore = create<UserStore>()(
     (set, get) => ({
       userProfile: createDefaultProfile(),
       incomes: [],
+      budgets: [],
 
       updateProfile: (updates) => {
         set((state) => ({
@@ -191,6 +203,120 @@ export const useUserStore = create<UserStore>()(
         }));
       },
 
+      createBudget: (budget) => {
+        const newBudget: Budget = {
+          ...budget,
+          id: generateId(),
+          isActive: budget.isActive || get().budgets.length === 0, // First budget is active by default
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        set((state) => ({
+          budgets: [...state.budgets, newBudget],
+        }));
+      },
+
+      updateBudget: (id, updates) => {
+        set((state) => ({
+          budgets: state.budgets.map((budget) =>
+            budget.id === id
+              ? { ...budget, ...updates, updatedAt: new Date().toISOString() }
+              : budget
+          ),
+        }));
+      },
+
+      deleteBudget: (id) => {
+        const { budgets } = get();
+        const deletingActive = budgets.find(b => b.id === id)?.isActive;
+
+        set((state) => {
+          const newBudgets = state.budgets.filter((budget) => budget.id !== id);
+
+          // If we deleted the active budget, make the first remaining one active
+          if (deletingActive && newBudgets.length > 0) {
+            newBudgets[0].isActive = true;
+          }
+
+          return { budgets: newBudgets };
+        });
+      },
+
+      setActiveBudget: (id) => {
+        set((state) => ({
+          budgets: state.budgets.map((budget) => ({
+            ...budget,
+            isActive: budget.id === id,
+            updatedAt: budget.id === id ? new Date().toISOString() : budget.updatedAt,
+          })),
+        }));
+      },
+
+      addBudgetCategory: (budgetId, category) => {
+        const newCategory: BudgetCategory = {
+          ...category,
+          id: generateId(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        set((state) => ({
+          budgets: state.budgets.map((budget) =>
+            budget.id === budgetId
+              ? {
+                  ...budget,
+                  categories: [...budget.categories, newCategory],
+                  totalLimit: budget.totalLimit + newCategory.limit,
+                  updatedAt: new Date().toISOString(),
+                }
+              : budget
+          ),
+        }));
+      },
+
+      updateBudgetCategory: (budgetId, categoryId, updates) => {
+        set((state) => ({
+          budgets: state.budgets.map((budget) => {
+            if (budget.id !== budgetId) return budget;
+
+            const oldCategory = budget.categories.find(c => c.id === categoryId);
+            const oldLimit = oldCategory?.limit || 0;
+            const newLimit = updates.limit !== undefined ? updates.limit : oldLimit;
+            const limitDifference = newLimit - oldLimit;
+
+            return {
+              ...budget,
+              categories: budget.categories.map((category) =>
+                category.id === categoryId
+                  ? { ...category, ...updates, updatedAt: new Date().toISOString() }
+                  : category
+              ),
+              totalLimit: budget.totalLimit + limitDifference,
+              updatedAt: new Date().toISOString(),
+            };
+          }),
+        }));
+      },
+
+      deleteBudgetCategory: (budgetId, categoryId) => {
+        set((state) => ({
+          budgets: state.budgets.map((budget) => {
+            if (budget.id !== budgetId) return budget;
+
+            const categoryToDelete = budget.categories.find(c => c.id === categoryId);
+            const limitToSubtract = categoryToDelete?.limit || 0;
+
+            return {
+              ...budget,
+              categories: budget.categories.filter((category) => category.id !== categoryId),
+              totalLimit: budget.totalLimit - limitToSubtract,
+              updatedAt: new Date().toISOString(),
+            };
+          }),
+        }));
+      },
+
       getTotalIncome: (frequency = "monthly") => {
         const { incomes } = get();
 
@@ -215,6 +341,10 @@ export const useUserStore = create<UserStore>()(
         return get().userProfile.financialGoals.filter(goal => goal.isActive);
       },
 
+      getActiveBudget: () => {
+        return get().budgets.find(budget => budget.isActive);
+      },
+
       isOnboardingComplete: () => {
         return get().userProfile.isOnboardingComplete;
       },
@@ -223,6 +353,7 @@ export const useUserStore = create<UserStore>()(
         set({
           userProfile: createDefaultProfile(),
           incomes: [],
+          budgets: [],
         });
         await AsyncStorage.removeItem(STORAGE_KEY);
       },
@@ -234,6 +365,7 @@ export const useUserStore = create<UserStore>()(
       partialize: (state) => ({
         userProfile: state.userProfile,
         incomes: state.incomes,
+        budgets: state.budgets,
       }),
     }
   )

@@ -9,6 +9,9 @@ import IncomeSetupScreen from "../screens/onboarding/IncomeSetupScreen";
 import IncomePathSelectionScreen from "../screens/onboarding/IncomePathSelectionScreen";
 import SimpleIncomeSetupScreen from "../screens/onboarding/SimpleIncomeSetupScreen";
 import AdvancedIncomeSetupScreen from "../screens/onboarding/AdvancedIncomeSetupScreen";
+import BudgetMethodSelectionScreen from "../screens/onboarding/BudgetMethodSelectionScreen";
+import UIBudgetSetupScreen from "../screens/onboarding/UIBudgetSetupScreen";
+import AIBudgetSetupScreen from "../screens/onboarding/AIBudgetSetupScreen";
 import ExpenseProfileScreen from "../screens/onboarding/ExpenseProfileScreen";
 import GoalsScreen from "../screens/onboarding/GoalsScreen";
 import BudgetPreferencesScreen from "../screens/onboarding/BudgetPreferencesScreen";
@@ -21,6 +24,9 @@ export type OnboardingStackParamList = {
   IncomePathSelection: undefined;
   SimpleIncomeSetup: undefined;
   AdvancedIncomeSetup: undefined;
+  BudgetMethodSelection: undefined;
+  UIBudgetSetup: undefined;
+  AIBudgetSetup: undefined;
   ExpenseProfile: undefined;
   Goals: undefined;
   BudgetPreferences: undefined;
@@ -45,6 +51,9 @@ export default function OnboardingNavigator() {
       <Stack.Screen name="IncomePathSelection" component={IncomePathSelectionScreen} />
       <Stack.Screen name="SimpleIncomeSetup" component={SimpleIncomeSetupScreen} />
       <Stack.Screen name="AdvancedIncomeSetup" component={AdvancedIncomeSetupScreen} />
+      <Stack.Screen name="BudgetMethodSelection" component={BudgetMethodSelectionScreen} />
+      <Stack.Screen name="UIBudgetSetup" component={UIBudgetSetupScreen} />
+      <Stack.Screen name="AIBudgetSetup" component={AIBudgetSetupScreen} />
       <Stack.Screen name="ExpenseProfile" component={ExpenseProfileScreen} />
       <Stack.Screen name="Goals" component={GoalsScreen} />
       <Stack.Screen name="BudgetPreferences" component={BudgetPreferencesScreen} />
@@ -76,8 +85,11 @@ export const getStepFromScreen = (screen: keyof OnboardingStackParamList): numbe
     case "IncomePathSelection": return 2;
     case "SimpleIncomeSetup": return 2;
     case "AdvancedIncomeSetup": return 2;
+    case "BudgetMethodSelection": return 3;
+    case "UIBudgetSetup": return 4;
+    case "AIBudgetSetup": return 4;
     case "ExpenseProfile": return 3;
-    case "Goals": return 4;
+    case "Goals": return 5;
     case "BudgetPreferences": return 5;
     case "OnboardingComplete": return 6;
     default: return 0;
