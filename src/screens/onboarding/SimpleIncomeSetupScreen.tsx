@@ -208,12 +208,11 @@ export default function SimpleIncomeSetupScreen() {
               {payFrequencies.map((frequency) => (
                 <SelectionCard
                   key={frequency.id}
-                  id={frequency.id}
                   title={frequency.name}
                   description={frequency.description}
                   icon={frequency.id === "monthly" ? "calendar-outline" : frequency.id === "bi-weekly" ? "calendar" : "time"}
-                  selected={incomeData.payFrequency === frequency.id}
-                  onSelect={() => {
+                  isSelected={incomeData.payFrequency === frequency.id}
+                  onPress={() => {
                     setIncomeData({ ...incomeData, payFrequency: frequency.id });
                     if (errors.payFrequency) {
                       setErrors({ ...errors, payFrequency: "" });
@@ -248,10 +247,9 @@ export default function SimpleIncomeSetupScreen() {
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                     <SelectionCard
                       key={day}
-                      id={day.toString()}
                       title={day.toString()}
-                      selected={incomeData.payDate === day}
-                      onSelect={() => {
+                      isSelected={incomeData.payDate === day}
+                      onPress={() => {
                         setIncomeData({ ...incomeData, payDate: day });
                         if (errors.payDate) {
                           setErrors({ ...errors, payDate: "" });
@@ -264,29 +262,26 @@ export default function SimpleIncomeSetupScreen() {
               ) : (
                 <View className="space-y-3">
                   <SelectionCard
-                    id="15-30"
                     title="15 y 30/31"
                     description="Días 15 y último día del mes"
                     icon="calendar"
-                    selected={incomeData.payDate === 15}
-                    onSelect={() => setIncomeData({ ...incomeData, payDate: 15 })}
+                    isSelected={incomeData.payDate === 15}
+                    onPress={() => setIncomeData({ ...incomeData, payDate: 15 })}
                     badge="Más común"
                   />
                   <SelectionCard
-                    id="1-15"
                     title="1 y 15"
                     description="Días 1 y 15 del mes"
                     icon="calendar"
-                    selected={incomeData.payDate === 1}
-                    onSelect={() => setIncomeData({ ...incomeData, payDate: 1 })}
+                    isSelected={incomeData.payDate === 1}
+                    onPress={() => setIncomeData({ ...incomeData, payDate: 1 })}
                   />
                   <SelectionCard
-                    id="varies"
                     title="Varía"
                     description="Las fechas cambian"
                     icon="shuffle"
-                    selected={incomeData.payDate === 0}
-                    onSelect={() => setIncomeData({ ...incomeData, payDate: 0 })}
+                    isSelected={incomeData.payDate === 0}
+                    onPress={() => setIncomeData({ ...incomeData, payDate: 0 })}
                   />
                 </View>
               )}
