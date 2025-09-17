@@ -40,22 +40,22 @@ export default function IncomePathSelectionScreen() {
       <View className="flex-1 space-y-4">
         {/* Simple Path Card */}
         <SelectionCard
-          id="simple"
           title="Simple"
           description="Tengo ingresos regulares, solo quiero presupuestar fácil"
           icon="card-outline"
-          onSelect={handleSimplePath}
+          isSelected={false}
+          onPress={handleSimplePath}
           badge="La mayoría elige esta opción"
           badgeColor="green"
         />
 
         {/* Advanced Path Card */}
         <SelectionCard
-          id="advanced"
           title="Avanzado"
           description="Tengo ingresos variables o múltiples fuentes de ingreso"
           icon="trending-up"
-          onSelect={handleAdvancedPath}
+          isSelected={false}
+          onPress={handleAdvancedPath}
           badge="Guiado por Bussy AI"
           badgeColor="blue"
         />

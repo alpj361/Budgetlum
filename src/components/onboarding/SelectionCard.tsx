@@ -10,6 +10,9 @@ interface SelectionCardProps {
   isSelected: boolean;
   onPress: () => void;
   disabled?: boolean;
+  badge?: string;
+  badgeColor?: "green" | "blue" | "yellow" | "red";
+  compact?: boolean;
 }
 
 export default function SelectionCard({
@@ -19,12 +22,29 @@ export default function SelectionCard({
   isSelected,
   onPress,
   disabled = false,
+  badge,
+  badgeColor = "blue",
+  compact = false,
 }: SelectionCardProps) {
+  const getBadgeColors = () => {
+    switch (badgeColor) {
+      case "green":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "blue":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "yellow":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "red":
+        return "bg-red-100 text-red-800 border-red-200";
+      default:
+        return "bg-blue-100 text-blue-800 border-blue-200";
+    }
+  };
   return (
     <AnimatedPressable
       onPress={onPress}
       disabled={disabled}
-      className={`p-4 rounded-xl border-2 mb-3 ${
+      className={`${compact ? "p-3" : "p-4"} rounded-xl border-2 mb-3 ${
         disabled
           ? "bg-gray-100 border-gray-200"
           : isSelected
@@ -33,7 +53,7 @@ export default function SelectionCard({
       }`}
     >
       <View className="flex-row items-start">
-        {icon && (
+        {icon && !compact && (
           <View
             className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
               disabled
@@ -58,18 +78,27 @@ export default function SelectionCard({
         )}
 
         <View className="flex-1">
-          <Text
-            className={`text-base font-semibold mb-1 ${
-              disabled
-                ? "text-gray-400"
-                : isSelected
-                ? "text-blue-900"
-                : "text-gray-900"
-            }`}
-          >
-            {title}
-          </Text>
-          {description && (
+          <View className="flex-row items-center justify-between mb-1">
+            <Text
+              className={`${compact ? "text-sm" : "text-base"} font-semibold ${
+                disabled
+                  ? "text-gray-400"
+                  : isSelected
+                  ? "text-blue-900"
+                  : "text-gray-900"
+              }`}
+            >
+              {title}
+            </Text>
+            {badge && (
+              <View className={`px-2 py-1 rounded-full border ${getBadgeColors()}`}>
+                <Text className="text-xs font-medium">
+                  {badge}
+                </Text>
+              </View>
+            )}
+          </View>
+          {description && !compact && (
             <Text
               className={`text-sm leading-5 ${
                 disabled
