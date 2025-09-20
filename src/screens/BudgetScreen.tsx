@@ -6,6 +6,7 @@ import {
   Pressable,
   TextInput,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import AnimatedPressable from "../components/AnimatedPressable";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,10 +15,17 @@ import { useExpenseStore } from "../state/expenseStore";
 import { EXPENSE_CATEGORIES, ExpenseCategory } from "../types/expense";
 import { useSettingsStore } from "../state/settingsStore";
 import { formatCurrency, getCurrencySymbol } from "../utils/currency";
+import { useConversationStore } from "../state/conversationStore";
+import { useUserStore } from "../state/userStore";
+import { useNavigation } from "@react-navigation/native";
 
 export default function BudgetScreen() {
   const { budgets, setBudget } = useExpenseStore();
   const currency = useSettingsStore((s) => s.primaryCurrency);
+  const { setMode, advancedModeState } = useConversationStore();
+  const { getTotalIncome } = useUserStore();
+  const navigation = useNavigation();
+
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [newBudgetCategory, setNewBudgetCategory] = useState<ExpenseCategory>(EXPENSE_CATEGORIES[0]);
   const [newBudgetAmount, setNewBudgetAmount] = useState("");
@@ -57,6 +65,20 @@ export default function BudgetScreen() {
   const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
   const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
+  const startAIBudgetSetup = () => {
+    setMode('advanced');
+    navigation.navigate('AI Chat' as never);
+  };
+
+  const hasAIGeneratedBudgets = () => {
+    // Check if we have standard AI-generated categories
+    const aiCategories = ['Vivienda', 'Alimentación', 'Transporte', 'Entretenimiento', 'Ahorros'];
+    return aiCategories.some(category => budgets.find(b => b.category === category));
+  };
+
+  const monthlyIncome = getTotalIncome('monthly');
+  const budgetCoverage = monthlyIncome > 0 ? (totalBudget / monthlyIncome) * 100 : 0;
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -69,6 +91,57 @@ export default function BudgetScreen() {
             Define y controla tus límites de gasto
           </Text>
         </View>
+
+        {/* AI Insights Panel */}
+        {budgets.length === 0 ? (
+          <View className="px-6 mb-6">
+            <View className="bg-gradient-to-r from-blue-500 to-green-500 rounded-xl p-6">
+              <View className="flex-row items-center mb-3">
+                <Ionicons name="construct" size={24} color="white" />
+                <Text className="text-white font-bold text-lg ml-2">
+                  Configuración Inteligente
+                </Text>
+              </View>
+              <Text className="text-white mb-4">
+                Deja que la IA configure tu presupuesto automáticamente basado en tus ingresos y mejores prácticas financieras.
+              </Text>
+              <TouchableOpacity
+                onPress={startAIBudgetSetup}
+                className="bg-white rounded-lg py-3 px-4"
+              >
+                <Text className="text-blue-600 font-semibold text-center">
+                  Configurar con IA
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : hasAIGeneratedBudgets() ? (
+          <View className="px-6 mb-6">
+            <View className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                  <Text className="text-green-800 font-semibold ml-2">
+                    Presupuesto generado por IA
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={startAIBudgetSetup}
+                  className="px-3 py-1 bg-green-100 rounded-full"
+                >
+                  <Text className="text-green-700 text-sm font-medium">
+                    Optimizar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {monthlyIncome > 0 && (
+                <Text className="text-green-700 text-sm mt-2">
+                  Cobertura: {budgetCoverage.toFixed(0)}% de tus ingresos
+                </Text>
+              )}
+            </View>
+          </View>
+        ) : null}
 
         {/* Overall Budget Summary */}
         {budgets.length > 0 && (

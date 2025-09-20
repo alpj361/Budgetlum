@@ -22,7 +22,7 @@ export default function BudgetMethodSelectionScreen() {
   const handleAIMode = () => {
     updateProfile({ budgetSetupMethod: "ai" });
     setOnboardingStep(4);
-    navigation.navigate("AIBudgetSetup");
+    navigation.navigate("AIAdvancedSetup");
   };
 
   const handleSkip = () => {

@@ -12,6 +12,7 @@ import AdvancedIncomeSetupScreen from "../screens/onboarding/AdvancedIncomeSetup
 import BudgetMethodSelectionScreen from "../screens/onboarding/BudgetMethodSelectionScreen";
 import UIBudgetSetupScreen from "../screens/onboarding/UIBudgetSetupScreen";
 import AIBudgetSetupScreen from "../screens/onboarding/AIBudgetSetupScreen";
+import AIAdvancedSetup from "../screens/onboarding/AIAdvancedSetup";
 import ExpenseProfileScreen from "../screens/onboarding/ExpenseProfileScreen";
 import GoalsScreen from "../screens/onboarding/GoalsScreen";
 import BudgetPreferencesScreen from "../screens/onboarding/BudgetPreferencesScreen";
@@ -27,6 +28,7 @@ export type OnboardingStackParamList = {
   BudgetMethodSelection: undefined;
   UIBudgetSetup: undefined;
   AIBudgetSetup: undefined;
+  AIAdvancedSetup: undefined;
   ExpenseProfile: undefined;
   Goals: undefined;
   BudgetPreferences: undefined;
@@ -54,6 +56,7 @@ export default function OnboardingNavigator() {
       <Stack.Screen name="BudgetMethodSelection" component={BudgetMethodSelectionScreen} />
       <Stack.Screen name="UIBudgetSetup" component={UIBudgetSetupScreen} />
       <Stack.Screen name="AIBudgetSetup" component={AIBudgetSetupScreen} />
+      <Stack.Screen name="AIAdvancedSetup" component={AIAdvancedSetup} />
       <Stack.Screen name="ExpenseProfile" component={ExpenseProfileScreen} />
       <Stack.Screen name="Goals" component={GoalsScreen} />
       <Stack.Screen name="BudgetPreferences" component={BudgetPreferencesScreen} />

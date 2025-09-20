@@ -9,39 +9,109 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AIMessage } from "../types/ai";
-import { getBussyResponse, getBussyWelcomeMessage } from "../api/chat-service";
+import {
+  getBussyResponse,
+  getBussyWelcomeMessage,
+  getBussyAdvancedResponse,
+  getBussyAdvancedWelcome
+} from "../api/chat-service";
 import { useExpenseStore } from "../state/expenseStore";
 import { useUserStore } from "../state/userStore";
+import { useConversationStore } from "../state/conversationStore";
+import { aiActionService, AIAction } from "../services/aiActionService";
+import { parseIncomeFromText } from "../utils/incomeParser";
 
 interface ChatMessage extends AIMessage {
   id: string;
   timestamp: Date;
+  actions?: AIAction[];
+}
+
+interface ActionConfirmationProps {
+  action: AIAction;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ActionConfirmation({ action, onConfirm, onCancel }: ActionConfirmationProps) {
+  const { title, details } = aiActionService.getActionPreview(action);
+
+  return (
+    <View className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-3">
+      <View className="flex-row items-center mb-2">
+        <Ionicons name="information-circle" size={20} color="#3b82f6" />
+        <Text className="text-blue-800 font-semibold ml-2">{title}</Text>
+      </View>
+
+      {details.map((detail, index) => (
+        <Text key={index} className="text-blue-700 text-sm mb-1">• {detail}</Text>
+      ))}
+
+      <View className="flex-row justify-end mt-3 space-x-3">
+        <TouchableOpacity
+          onPress={onCancel}
+          className="px-4 py-2 rounded-lg border border-gray-300"
+        >
+          <Text className="text-gray-700 font-medium">Cancelar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onConfirm}
+          className="px-4 py-2 rounded-lg bg-blue-600"
+        >
+          <Text className="text-white font-medium">Confirmar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 }
 
 export default function AIChatScreen() {
   const { expenses, budgets, getTotalSpent } = useExpenseStore();
   const { userProfile, getTotalIncome } = useUserStore();
+  const {
+    currentMode,
+    advancedModeState,
+    setMode,
+    updateConversationStep,
+    addMessage,
+    addPendingAction,
+    removePendingAction,
+    updateCollectedIncomes,
+    getCurrentStepProgress,
+    isAdvancedModeActive
+  } = useConversationStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [pendingActions, setPendingActions] = useState<AIAction[]>([]);
+  const [showModeSelector, setShowModeSelector] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Initialize chat with Bussy's welcome message
+  // Initialize chat based on current mode
   useEffect(() => {
     if (!isInitialized) {
       initializeChat();
       setIsInitialized(true);
     }
-  }, [isInitialized]);
+  }, [isInitialized, currentMode]);
 
   const initializeChat = async () => {
     try {
-      const welcomeContent = await getBussyWelcomeMessage(userProfile);
+      let welcomeContent: string;
+
+      if (currentMode === 'advanced') {
+        welcomeContent = await getBussyAdvancedWelcome(userProfile);
+        updateConversationStep('WELCOME');
+      } else {
+        welcomeContent = await getBussyWelcomeMessage(userProfile);
+      }
 
       const welcomeMessage: ChatMessage = {
         id: "welcome-1",
@@ -52,14 +122,16 @@ export default function AIChatScreen() {
 
       setMessages([welcomeMessage]);
     } catch (error) {
-      console.error("Error initializing Bussy chat:", error);
+      console.error("Error initializing chat:", error);
       // Fallback welcome message
       const fallbackMessage: ChatMessage = {
         id: "welcome-fallback",
         role: "assistant",
-        content: userProfile?.name
-          ? `¡Hola ${userProfile.name}! 👋 Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?`
-          : "¡Hola! 👋 Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?",
+        content: currentMode === 'advanced'
+          ? "Hola. Soy tu asistente financiero y voy a ayudarte a configurar tu presupuesto. Para empezar, cuéntame sobre tus ingresos."
+          : userProfile?.name
+          ? `Hola ${userProfile.name}. Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?`
+          : "Hola. Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?",
         timestamp: new Date(),
       };
       setMessages([fallbackMessage]);
@@ -84,29 +156,57 @@ export default function AIChatScreen() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    addMessage({ ...userMessage, role: userMessage.role as 'user' | 'assistant' });
     setInputText("");
     setIsLoading(true);
 
     try {
-      // Build context for Bussy
+      // Build context
       const context = {
         userProfile,
         recentExpenses: expenses.slice(0, 10),
         budgets,
         totalSpent: getTotalSpent(),
         monthlyIncome: getTotalIncome("monthly"),
+        conversationStep: advancedModeState.currentStep,
+        mode: currentMode
       };
 
-      const response = await getBussyResponse(userMessage.content, context);
+      let response;
+      if (currentMode === 'advanced') {
+        response = await getBussyAdvancedResponse(userMessage.content, context);
+
+        // Handle income parsing in Advanced Mode during income setup
+        if (advancedModeState.currentStep === 'INCOME_SETUP') {
+          const parsedIncomes = parseIncomeFromText(userMessage.content);
+          if (parsedIncomes.length > 0) {
+            updateCollectedIncomes(parsedIncomes);
+          }
+        }
+      } else {
+        response = await getBussyResponse(userMessage.content, context);
+      }
+
+      // Extract actions from AI response
+      const extractedActions = aiActionService.extractActions(response.content);
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: response.content,
         timestamp: new Date(),
+        actions: extractedActions
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      addMessage({ ...assistantMessage, role: assistantMessage.role as 'user' | 'assistant' });
+
+      // Handle pending actions
+      if (extractedActions.length > 0) {
+        setPendingActions(extractedActions);
+        extractedActions.forEach(action => addPendingAction(action));
+      }
+
     } catch (error) {
       console.error("Chat error:", error);
       Alert.alert(
@@ -117,6 +217,50 @@ export default function AIChatScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleActionConfirm = async (action: AIAction) => {
+    try {
+      const result = await aiActionService.executeAction(action);
+
+      if (result.success) {
+        // Remove from pending actions
+        setPendingActions(prev => prev.filter(a => a.conversationId !== action.conversationId));
+        removePendingAction(action.conversationId);
+
+        // Add success message
+        const successMessage: ChatMessage = {
+          id: (Date.now() + 2).toString(),
+          role: "assistant",
+          content: `✅ ${result.message}`,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, successMessage]);
+        addMessage({ ...successMessage, role: successMessage.role as 'user' | 'assistant' });
+      } else {
+        Alert.alert("Error", result.message);
+      }
+    } catch (error) {
+      console.error("Error executing action:", error);
+      Alert.alert("Error", "No se pudo ejecutar la acción");
+    }
+  };
+
+  const handleActionCancel = (action: AIAction) => {
+    setPendingActions(prev => prev.filter(a => a.conversationId !== action.conversationId));
+    removePendingAction(action.conversationId);
+  };
+
+  const toggleAdvancedMode = () => {
+    setShowModeSelector(!showModeSelector);
+  };
+
+  const selectMode = (mode: 'standard' | 'advanced') => {
+    setMode(mode);
+    setShowModeSelector(false);
+    setIsInitialized(false);
+    setMessages([]);
   };
 
   const clearChat = () => {
@@ -131,6 +275,7 @@ export default function AIChatScreen() {
           onPress: () => {
             setIsInitialized(false);
             setMessages([]);
+            setPendingActions([]);
           },
         },
       ]

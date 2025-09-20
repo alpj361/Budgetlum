@@ -10,33 +10,71 @@ import { getGrokClient } from "./grok";
 import { UserProfile, FinancialGoal } from "../types/user";
 import { Expense, Budget } from "../types/expense";
 
-// Bussy's enhanced system prompt
-const BUSSY_SYSTEM_PROMPT = `You are Bussy, Budgetlum's trusted AI financial advisor. You are professional yet friendly, with expertise in personal finance, budgeting, debt management, savings optimization, and goal setting.
+// Standard mode system prompt
+const BUSSY_SYSTEM_PROMPT = `You are Bussy, Budgetlum's AI financial advisor. You provide direct, professional financial guidance with expertise in personal finance, budgeting, debt management, savings optimization, and goal setting.
 
-**Your Personality:**
-- Professional but approachable - like a knowledgeable friend who happens to be a financial expert
-- Always provide specific, actionable advice tailored to the user's situation
-- Adapt your communication style to the user's experience level
-- Use encouraging language that motivates positive financial habits
-- When appropriate, reference the user's specific data (expenses, budgets, goals) to provide personalized insights
+**Your Approach:**
+- Deliver specific, actionable advice tailored to the user's financial situation
+- Adapt recommendations based on the user's experience level and data
+- Provide clear, measurable steps for financial improvement
+- Reference the user's actual financial data to support recommendations
 
 **Your Expertise Areas:**
 - Personal budgeting and expense tracking
 - Debt reduction strategies
 - Emergency fund planning
 - Savings goal optimization
-- Investment basics (when appropriate)
+- Investment basics
 - Financial habit formation
 - Cash flow management
 
 **Communication Style:**
-- Start responses with brief acknowledgment of their situation
-- Provide 2-3 concrete actionable steps when giving advice
+- Acknowledge the user's current situation briefly
+- Provide 2-3 specific actionable steps with clear reasoning
 - Use Spanish naturally (the app is in Spanish)
-- Reference their actual financial data when relevant
-- End with encouragement or a follow-up question to keep them engaged
+- Reference actual financial data when making recommendations
+- Focus on practical outcomes rather than motivation
 
-**Context:** You have access to the user's expense history, budget information, financial goals, and profile data. Use this information to provide personalized, relevant advice.`;
+**Context:** You have access to the user's expense history, budget information, financial goals, and profile data. Use this information to provide personalized, data-driven advice.`;
+
+// Advanced mode system prompt
+const ADVANCED_MODE_PROMPT = `You are a professional financial advisor AI assistant. Your role is to actively help users set up and manage their budgets through structured conversation.
+
+**Rules:**
+- Be direct and concise without decorative language or emojis
+- Focus on actionable financial guidance
+- Extract structured financial data from natural conversation
+- Confirm your understanding with clear summaries
+- You can execute these actions: ADD_EXPENSE, SET_INCOME, MODIFY_BUDGET, SET_GOAL, GENERATE_BUDGET
+- Always ask for confirmation before executing actions
+- Format action requests as JSON in your response
+
+**When collecting income:**
+1. Listen for all income sources in natural language
+2. Parse amounts, frequencies, and types
+3. Present structured summary for confirmation
+4. After confirmation, execute SET_INCOME action
+
+**When user mentions spending:**
+- "I spent $X on Y" → Prepare ADD_EXPENSE action
+- "My rent is $X" → Prepare ADD_EXPENSE with recurring flag
+
+**Action Format:**
+When ready to execute an action, include JSON like this:
+\`\`\`json
+{
+  "action": "SET_INCOME",
+  "data": {
+    "name": "Salary",
+    "amount": 5000,
+    "frequency": "monthly",
+    "type": "salary"
+  },
+  "confirmation": "I understand you earn $5,000 monthly from your salary. Should I add this to your income sources?"
+}
+\`\`\`
+
+**Use Spanish naturally. Current conversation step: {{conversationStep}}`;
 
 interface BussyContext {
   userProfile?: UserProfile;
@@ -44,6 +82,11 @@ interface BussyContext {
   budgets?: Budget[];
   totalSpent?: number;
   monthlyIncome?: number;
+}
+
+interface AdvancedModeContext extends BussyContext {
+  conversationStep?: string;
+  mode: 'standard' | 'advanced';
 }
 
 /**
@@ -110,13 +153,13 @@ export const getAnthropicChatResponse = async (prompt: string): Promise<AIRespon
 export const getOpenAITextResponse = async (messages: AIMessage[], options?: AIRequestOptions): Promise<AIResponse> => {
   try {
     const client = getOpenAIClient();
-    const defaultModel = "gpt-4o"; //accepts images as well, use this for image analysis
+    const defaultModel = "gpt-4-turbo-preview"; // Use GPT-4 for better reasoning
 
     const response = await client.chat.completions.create({
       model: options?.model || defaultModel,
       messages: messages,
       temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.maxTokens || 2048,
+      max_tokens: options?.maxTokens || 1000,
     });
 
     return {
@@ -284,4 +327,59 @@ export const getBussyWelcomeMessage = async (userProfile?: Partial<UserProfile>)
 export const getBussyFinancialAnalysis = async (context: BussyContext): Promise<AIResponse> => {
   const analysisPrompt = "Analiza mi situación financiera actual y dame 3 recomendaciones específicas para mejorar mis finanzas.";
   return await getBussyResponse(analysisPrompt, context);
+};
+
+/**
+ * Get Advanced Mode response with action capabilities
+ * @param prompt - The user's message
+ * @param context - User's financial context including conversation step
+ * @returns The response from Bussy in Advanced Mode
+ */
+export const getBussyAdvancedResponse = async (
+  prompt: string,
+  context: AdvancedModeContext = { mode: 'advanced' }
+): Promise<AIResponse> => {
+  const contextString = buildContextString(context);
+  const conversationStep = context.conversationStep || 'WELCOME';
+
+  const systemPrompt = ADVANCED_MODE_PROMPT.replace('{{conversationStep}}', conversationStep);
+
+  const messages: AIMessage[] = [
+    {
+      role: "system",
+      content: systemPrompt + (contextString ? `\n\n${contextString}` : "")
+    },
+    {
+      role: "user",
+      content: prompt
+    }
+  ];
+
+  return await getOpenAITextResponse(messages, {
+    temperature: 0.7,
+    maxTokens: 1000,
+  });
+};
+
+/**
+ * Get Advanced Mode welcome message for budget setup
+ * @param userProfile - The user's profile data
+ * @returns Welcome message for Advanced Mode
+ */
+export const getBussyAdvancedWelcome = async (userProfile?: Partial<UserProfile>): Promise<string> => {
+  const welcomePrompt = "Inicia el proceso de configuración de presupuesto. Preséntate brevemente y pregunta sobre los ingresos del usuario.";
+
+  try {
+    const response = await getBussyAdvancedResponse(welcomePrompt, {
+      userProfile: userProfile as UserProfile,
+      conversationStep: 'WELCOME',
+      mode: 'advanced'
+    });
+    return response.content;
+  } catch (error) {
+    console.error("Error getting Advanced Mode welcome message:", error);
+    return userProfile?.name
+      ? `Hola ${userProfile.name}. Soy tu asistente financiero y voy a ayudarte a configurar tu presupuesto. Para empezar, cuéntame sobre tus ingresos: ¿cuánto ganas y con qué frecuencia?`
+      : "Hola. Soy tu asistente financiero y voy a ayudarte a configurar tu presupuesto. Para empezar, cuéntame sobre tus ingresos: ¿cuánto ganas y con qué frecuencia?";
+  }
 };
