@@ -188,8 +188,8 @@ Return only valid JSON:`;
           type: type || income.type,
           paymentDates: Array.isArray(income.paymentDates)
             ? income.paymentDates
-                .map((value: any) => parseInt(value, 10))
-                .filter((value: number) => Number.isInteger(value))
+                .map(normalizePaymentDateValue)
+                .filter((value): value is number => typeof value === 'number')
             : undefined,
           description: typeof income.description === 'string' ? income.description.trim() : income.description,
         } as ParsedIncome;
@@ -198,8 +198,8 @@ Return only valid JSON:`;
       const preferences = extracted.preferences || {};
       if (Array.isArray(preferences.paymentDates)) {
         preferences.paymentDates = preferences.paymentDates
-          .map((value: any) => parseInt(value, 10))
-          .filter((value: number) => Number.isInteger(value));
+          .map(normalizePaymentDateValue)
+          .filter((value): value is number => typeof value === 'number');
       }
       if (typeof preferences.savingsGoal === 'string') {
         const parsed = parseFloat(preferences.savingsGoal.replace(/[^\d.-]/g, ''));
@@ -352,5 +352,31 @@ const resolveAmountForValidation = (income: ParsedIncome): number | undefined =>
   if (Number.isFinite(income.maxAmount)) {
     return income.maxAmount;
   }
+  return undefined;
+};
+
+const normalizePaymentDateValue = (value: any): number | undefined => {
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim().toLowerCase();
+    const numericPortion = parseInt(trimmed.replace(/[^\d-]/g, ''), 10);
+    if (!Number.isNaN(numericPortion)) {
+      return numericPortion;
+    }
+
+    if (trimmed.includes('fin de mes') || trimmed.includes('fin del mes') || trimmed.includes('último día')) {
+      return 31;
+    }
+    if (trimmed.includes('inicio de mes') || trimmed.includes('principio de mes') || trimmed.includes('primer día')) {
+      return 1;
+    }
+    if (trimmed.includes('quincena') || trimmed.includes('medio mes')) {
+      return 15;
+    }
+  }
+
   return undefined;
 };
