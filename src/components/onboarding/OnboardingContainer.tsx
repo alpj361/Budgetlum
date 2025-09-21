@@ -40,7 +40,7 @@ export default function OnboardingContainer({
 
   return (
     <ErrorBoundary>
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-gray-50">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -92,29 +92,31 @@ export default function OnboardingContainer({
         >
           <View style={{
             flex: 1,
-            width: '90%',
+            width: '92%',
             alignSelf: 'center',
-            marginHorizontal: 'auto',
+            marginHorizontal: 16,
+            marginVertical: 8,
             backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 16,
+            borderRadius: 16,
+            padding: 20,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 2,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.12,
+            shadowRadius: 8,
+            elevation: 4,
           }}>
             {/* Title Section */}
             <View className="mb-8">
               <Text
                 style={{
                   textAlign: 'center',
-                  paddingVertical: 16,
+                  paddingTop: 20,
+                  paddingBottom: 8,
                   width: '100%',
-                  fontSize: 28,
-                  fontWeight: 'bold',
+                  fontSize: 32,
+                  fontWeight: '700',
                   color: '#111827',
-                  marginBottom: 12,
+                  lineHeight: 40,
                 }}
               >
                 {title}
@@ -123,11 +125,14 @@ export default function OnboardingContainer({
                 <Text
                   style={{
                     textAlign: 'center',
-                    paddingVertical: 8,
+                    paddingTop: 8,
+                    paddingBottom: 20,
+                    paddingHorizontal: 12,
                     width: '100%',
-                    fontSize: 16,
-                    lineHeight: 24,
-                    color: '#4B5563',
+                    fontSize: 18,
+                    lineHeight: 26,
+                    color: '#6B7280',
+                    fontWeight: '400',
                   }}
                 >
                   {subtitle}
