@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AIMessage } from "../types/ai";
@@ -138,12 +139,31 @@ export default function AIChatScreen() {
     }
   };
 
+  // Auto-scroll to bottom when new messages are added
   useEffect(() => {
-    // Auto-scroll to bottom when new messages are added
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, [messages]);
+    if (messages.length > 0) {
+      // Only scroll when a new message is actually added
+      const timeoutId = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 200);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length]);
+
+  // Handle keyboard showing
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      // Scroll to bottom when keyboard appears to ensure input is visible
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   const sendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -293,6 +313,7 @@ export default function AIChatScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <View className="flex-1 bg-gray-50">
         {/* Messages */}
@@ -300,6 +321,8 @@ export default function AIChatScreen() {
           ref={scrollViewRef}
           className="flex-1 px-4"
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           <View className="py-4 space-y-4">
             {messages.map((message) => (
@@ -360,7 +383,10 @@ export default function AIChatScreen() {
               <TextInput
                 value={inputText}
                 onChangeText={setInputText}
-                placeholder="Escribe tu mensaje..."
+                placeholder={currentMode === 'advanced'
+                  ? "Describe tus ingresos o gastos..."
+                  : "Escribe tu mensaje..."
+                }
                 placeholderTextColor="#9ca3af"
                 multiline
                 maxLength={1000}
@@ -369,6 +395,12 @@ export default function AIChatScreen() {
                 onSubmitEditing={sendMessage}
                 returnKeyType="send"
                 blurOnSubmit={false}
+                onFocus={() => {
+                  // Scroll to bottom when user focuses on input
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 300);
+                }}
               />
             </View>
             
