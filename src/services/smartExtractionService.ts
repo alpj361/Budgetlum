@@ -31,12 +31,12 @@ export class SmartExtractionService {
 Extract detailed financial data from a conversational message and reply with a JSON object only.
 
 PRINCIPLES:
-- Always capture explicit amounts, ranges (min/max), and payment frequencies.
-- Recognise quincena/bi-weekly, irregular, seasonal, and other common Latin American payment patterns.
-- Detect concrete payment dates (e.g. 15, 30) and include them as numbers.
-- Identify whether income is variable and include supporting notes when the user mentions context.
-- Parse expenses, financial goals, and budgeting preferences when present.
-- Return confidence score (0-1) for every extracted record.
+- Always capture explicit amounts or ranges and convert them to a monthly baseline. If the user gives per-cycle numbers, keep the monthly total in "amount" and use payment dates to describe the cycle.
+- Recognise quincena/bi-weekly, irregular, seasonal, hourly, and commission-based statements. Flag "isVariable" when part of the income fluctuates, storing any conservative/base portion in "amount" and ranges in "minAmount"/"maxAmount".
+- Detect specific payment dates (15, 28, "fin de mes") and include them as integers. If the user mentions adjustments for fines de semana o feriados, capture that note in "description" (e.g. "se mueve al día hábil anterior").
+- Use "description" for contextual scheduling rules, hourly assumptions, or how extra bonuses work so the assistant can adapt later.
+- Identify expenses, financial goals, and preferences even when the user mixes topics or gives them out of order.
+- Return confidence scores (0-1) for every element and leave fields null when the information is unavailable.
 
 RETURN FORMAT:
 {
@@ -76,9 +76,10 @@ RETURN FORMAT:
 }
 
 Examples:
-- "Gano Q4,500 el 15 y Q4,500 el último día del mes" → income with amount 4500, frequency "bi-weekly", paymentDates [15, 30]
-- "Recibo remesas de mi mamá, como Q800 el primer domingo" → income type "remittance", amount 800, frequency "monthly", paymentDates [1]
-- "Pago la renta el 1 y la tarjeta el 15" → preferences.paymentDates [1,15]
+- "Gano Q4,500 divididos el 17 y 28 de cada mes, si cae en domingo lo pagan el viernes" → income amount 4500, frequency "bi-weekly", paymentDates [17, 28], description "ajusta a día hábil anterior".
+- "Recibo Q1,200 de comisiones (mínimo Q800)" → amount 800, minAmount 800, maxAmount 1200, isVariable true.
+- "Pago la renta el 1 y la tarjeta el 15" → preferences.paymentDates [1, 15].
+- "Me pagan por hora (Q25) y suelo trabajar 40 horas" → amount 25*160, isVariable true, description "basado en 40h".
 `;
 
   static async extractFromMessage(message: string, context: any = {}): Promise<ExtractedData> {
@@ -190,6 +191,7 @@ Return only valid JSON:`;
                 .map((value: any) => parseInt(value, 10))
                 .filter((value: number) => Number.isInteger(value))
             : undefined,
+          description: typeof income.description === 'string' ? income.description.trim() : income.description,
         } as ParsedIncome;
       });
 
@@ -247,14 +249,27 @@ Return only valid JSON:`;
     ];
 
     data.incomes.forEach((income, index) => {
-      if (income.amount <= 0 && !(income.minAmount && income.maxAmount && income.minAmount > 0)) {
-        errors.push(`Ingreso ${index + 1}: El monto debe ser positivo`);
+      const resolvedAmount = resolveAmountForValidation(income);
+      if (!resolvedAmount || resolvedAmount <= 0) {
+        suggestions.push(`Ingreso ${index + 1}: confirmemos el monto mensual o rango conservador.`);
+      } else if (resolvedAmount > 1_000_000) {
+        suggestions.push(`¿El ingreso de $${resolvedAmount.toLocaleString()} es correcto?`);
       }
-      if (income.amount > 0 && income.amount > 1000000) {
-        suggestions.push(`¿El ingreso de $${income.amount.toLocaleString()} es correcto?`);
+
+      if (income.paymentDates) {
+        income.paymentDates.forEach((date) => {
+          if (date < 1 || date > 31) {
+            errors.push(`Ingreso ${index + 1}: la fecha de pago ${date} no es válida (usa 1-31).`);
+          }
+        });
       }
-      if (!allowedFrequencies.includes(income.frequency as any)) {
-        errors.push(`Ingreso ${index + 1}: Frecuencia inválida`);
+
+      if (income.frequency && !allowedFrequencies.includes(income.frequency as any)) {
+        suggestions.push(`Ingreso ${index + 1}: frecuencia "${income.frequency}" poco común, valida si corresponde.`);
+      }
+
+      if (income.isVariable && !Number.isFinite(income.minAmount) && !Number.isFinite(income.amount)) {
+        suggestions.push(`Ingreso ${index + 1}: indica un monto base fijo para usar en el presupuesto.`);
       }
     });
 
@@ -323,3 +338,19 @@ Return only valid JSON:`;
     return parts.join('\n');
   }
 }
+
+const resolveAmountForValidation = (income: ParsedIncome): number | undefined => {
+  if (Number.isFinite(income.amount)) {
+    return income.amount;
+  }
+  if (Number.isFinite(income.minAmount) && Number.isFinite(income.maxAmount)) {
+    return ((income.minAmount as number) + (income.maxAmount as number)) / 2;
+  }
+  if (Number.isFinite(income.minAmount)) {
+    return income.minAmount;
+  }
+  if (Number.isFinite(income.maxAmount)) {
+    return income.maxAmount;
+  }
+  return undefined;
+};

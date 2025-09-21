@@ -56,32 +56,64 @@ const buildIncomeSystemPrompt = ({
   conversationPhase,
   paymentDates,
 }: IncomePromptParams) => {
+  const formatAmount = (value?: number) =>
+    typeof value === "number" && Number.isFinite(value)
+      ? `${currencySymbol}${Math.round(value).toLocaleString()}`
+      : "monto por confirmar";
+
   const existingLines = existingIncomes.length
     ? existingIncomes
-        .map(
-          (income) =>
-            `- ${income.name}: ${currencySymbol}${income.amount.toLocaleString()} (${income.frequency})${
-              income.payDate ? `, pagado el día ${income.payDate}` : ""
-            }`
-        )
+        .map((income) => {
+          const scheduleLabel = income.payDate
+            ? `, paga el día ${income.payDate}`
+            : income.paymentSchedule?.dates?.length
+              ? `, fechas ${income.paymentSchedule.dates.join(", ")}`
+              : "";
+          return `- ${income.name}: ${formatAmount(income.amount)} (${income.frequency})${scheduleLabel}`;
+        })
         .join("\n")
     : "- Sin registros previos";
 
   const detectedLines = detectedIncomes.length
     ? detectedIncomes
         .map((income) => {
-          const amountLabel = Number.isFinite(income.amount)
-            ? `${currencySymbol}${income.amount.toLocaleString()}`
-            : income.minAmount && income.maxAmount
-              ? `${currencySymbol}${income.minAmount.toLocaleString()} - ${currencySymbol}${income.maxAmount.toLocaleString()}`
-              : "monto por confirmar";
+          const resolvedAmount = resolveIncomeAmount(income);
+          const amountLabel = income.minAmount && income.maxAmount && income.minAmount !== income.maxAmount
+            ? `${formatAmount(income.minAmount)} - ${formatAmount(income.maxAmount)}`
+            : formatAmount(resolvedAmount);
+          const cycleBreakdown = income.paymentDates?.length
+            ? ` · ${income.paymentDates.length} pago(s) de ${formatAmount(
+                resolvedAmount && income.paymentDates.length > 0
+                  ? resolvedAmount / income.paymentDates.length
+                  : undefined
+              )}`
+            : "";
           const schedule = income.paymentDates?.length
             ? ` | Fechas: ${income.paymentDates.join(", ")}`
             : "";
-          return `- ${income.name || "Ingreso"}: ${amountLabel} (${income.frequency})${schedule}`;
+          return `- ${income.name || "Ingreso"}: ${amountLabel} (${income.frequency})${cycleBreakdown}${schedule}`;
         })
         .join("\n")
     : "- Aún no hemos confirmado montos";
+
+  const schedulePreviewLines = detectedIncomes
+    .map((income) => {
+      if (!income.paymentDates || income.paymentDates.length === 0) return null;
+      const preview = getUpcomingPaymentPreview(income.paymentDates, 4);
+      if (!preview.length) return null;
+      return `- ${income.name || "Ingreso"}: ${preview.join(", ")}`;
+    })
+    .filter(Boolean)
+    .join("\n") || "- Aún sin calendario calculado";
+
+  const variableIncomeLines = detectedIncomes
+    .filter((income) => income.isVariable)
+    .map((income) => {
+      const base = formatAmount(income.minAmount ?? income.amount);
+      const top = income.maxAmount && income.maxAmount !== income.minAmount ? ` hasta ${formatAmount(income.maxAmount)}` : "";
+      return `- ${income.name || "Ingreso variable"}: base ${base}${top}`;
+    })
+    .join("\n") || "- Sin ingresos variables detectados";
 
   const paymentDatesLine = paymentDates.length
     ? paymentDates
@@ -106,15 +138,21 @@ ${existingLines}
 Datos detectados en esta sesión:
 ${detectedLines}
 
+Calendario proyectado:
+${schedulePreviewLines}
+
+Ingresos variables o extra:
+${variableIncomeLines}
+
 Fechas de pago conocidas: ${paymentDatesLine}
 
 Instrucciones clave:
 1. Responde en español latino, tono empático y claro.
-2. Repite y valida explícitamente montos, frecuencias y fechas que el usuario mencione.
-3. Si falta información (monto, frecuencia, fechas) pide solo lo necesario sin entrar en bucles interminables.
-4. Cuando detectes nuevos datos, explica cómo se actualizará el panel visual.
-5. No inventes números. Si algo es confuso, pide confirmación o rango.
-6. Cuando todo esté claro (montos y calendario), guía al usuario a continuar al siguiente paso.`;
+2. Repite y valida explícitamente montos, frecuencias y fechas que el usuario mencione. Divide los montos mensuales en ciclos cuando aplique.
+3. Usa el calendario proyectado para mostrar ejemplos de próximos pagos y menciona ajustes si caen en fin de semana.
+4. Para ingresos variables (comisiones, horas, bonos) confirma la base fija y aclara que el presupuesto usará el monto conservador; el resto se trata como extra.
+5. Si falta información, ofrece inferencias razonables o preguntas puntuales, evitando bucles. No inventes números; pide un rango si es necesario.
+6. Cuando todo esté claro (montos y calendario), resume y sugiere avanzar al siguiente paso del onboarding.`;
 };
 
 interface QuickActionBlueprint {
@@ -143,6 +181,18 @@ const QUICK_ACTION_BLUEPRINTS: QuickActionBlueprint[] = [
     id: "business",
     label: "Negocio propio",
     buildPayload: (currency) => `Tengo un pequeño negocio y limpio ${currency}2000 al mes, suele entrar entre el 10 y 12`,
+  },
+  {
+    id: "commission",
+    label: "Salario + comisión",
+    buildPayload: (currency) =>
+      `Mi salario base es ${currency}3500 al mes y comisiones mínimas ${currency}800. Todo lo depositan el 28, si cae fin de semana lo hacen el viernes antes`,
+  },
+  {
+    id: "hourly",
+    label: "Pago por horas",
+    buildPayload: (currency) =>
+      `Trabajo por hora a ${currency}25 y normalmente completo 40 horas a la semana, me pagan cada viernes`,
   },
 ];
 
@@ -203,15 +253,25 @@ export default function AdvancedIncomeSetupScreen() {
 
   const currencySymbol = getCurrencySymbol(profile?.country || "GT");
 
-  const quickActions = useMemo<QuickAction[]>(
-    () =>
-      QUICK_ACTION_BLUEPRINTS.map(({ id, label, buildPayload }) => ({
-        id,
-        label,
-        payload: buildPayload(initialCurrency),
-      })),
-    [initialCurrency]
-  );
+  const initialIncomesRef = useRef(incomes);
+  const initialProfileRef = useRef(profile);
+  const initialCurrencyRef = useRef(currencySymbol);
+
+  const configureSessionRef = useRef(configureSession);
+  configureSessionRef.current = configureSession;
+
+  const resetConversationRef = useRef(resetConversation);
+  resetConversationRef.current = resetConversation;
+
+  const baseCurrencySymbol = initialCurrencyRef.current || currencySymbol || "";
+
+  const quickActions = useMemo<QuickAction[]>(() => {
+    return QUICK_ACTION_BLUEPRINTS.map(({ id, label, buildPayload }) => ({
+      id,
+      label,
+      payload: buildPayload(baseCurrencySymbol).trim(),
+    }));
+  }, [baseCurrencySymbol]);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -219,13 +279,12 @@ export default function AdvancedIncomeSetupScreen() {
     }, 120);
   }, []);
 
-  const [initialIncomes] = useState(incomes);
-  const [initialProfile] = useState(profile);
-  const [initialCurrency] = useState(currencySymbol);
-
   useEffect(() => {
+    const initialIncomes = initialIncomesRef.current || [];
+    const initialProfile = initialProfileRef.current;
+    const symbol = baseCurrencySymbol || currencySymbol;
 
-    resetConversation();
+    resetConversationRef.current();
     setIntroMessage(INTRO_MESSAGE);
     setDetectedIncomes(initialIncomes.map(mapIncomeToParsed));
     setCurrentInput("");
@@ -236,10 +295,10 @@ export default function AdvancedIncomeSetupScreen() {
       ...(initialProfile?.paymentDates || []),
     ].filter((day): day is number => typeof day === "number");
 
-    configureSession({
+    configureSessionRef.current({
       systemPrompt: buildIncomeSystemPrompt({
         userInput: "",
-        currencySymbol: initialCurrency,
+        currencySymbol: symbol,
         profile: initialProfile || null,
         detectedIncomes: initialIncomes.map(mapIncomeToParsed),
         existingIncomes: initialIncomes,
@@ -257,7 +316,7 @@ export default function AdvancedIncomeSetupScreen() {
     });
 
     return () => {
-      resetConversation();
+      resetConversationRef.current();
     };
   }, []);
 
@@ -325,13 +384,12 @@ export default function AdvancedIncomeSetupScreen() {
       });
     });
 
-    if (initialProfile?.paymentDates?.length) {
-      initialProfile.paymentDates.forEach((day) => {
+    const profilePaymentDates = profile?.paymentDates || initialProfileRef.current?.paymentDates || [];
+    profilePaymentDates.forEach((day) => {
         if (typeof day === "number" && day > 0 && day <= 31) {
           dates.add(Math.round(day));
         }
       });
-    }
 
     if (lastExtraction?.preferences?.paymentDates?.length) {
       lastExtraction.preferences.paymentDates.forEach((day) => {
@@ -342,11 +400,14 @@ export default function AdvancedIncomeSetupScreen() {
     }
 
     return Array.from(dates).sort((a, b) => a - b);
-  }, [detectedIncomes, lastExtraction, initialProfile]);
+  }, [detectedIncomes, lastExtraction, profile]);
 
   useEffect(() => {
     const hasIncomes = detectedIncomes.length > 0;
-    const hasAmounts = hasIncomes && detectedIncomes.every((income) => Number.isFinite(income.amount) && income.amount > 0);
+    const hasAmounts = hasIncomes && detectedIncomes.every((income) => {
+      const amount = resolveIncomeAmount(income);
+      return typeof amount === "number" && amount > 0;
+    });
     const hasSchedule = aggregatedPaymentDates.length > 0;
     const isValidated =
       !!validation &&
@@ -446,7 +507,7 @@ export default function AdvancedIncomeSetupScreen() {
 
     const prompt = buildIncomeSystemPrompt({
       userInput: message,
-      currencySymbol: initialCurrency,
+      currencySymbol: baseCurrencySymbol,
       profile: profile || null,
       detectedIncomes,
       existingIncomes: incomes,
@@ -616,14 +677,53 @@ export default function AdvancedIncomeSetupScreen() {
               {detectedIncomes.length > 0 && (
                 <View className="mb-2">
                   <Text className="text-green-700 font-semibold mb-2">Ingresos:</Text>
-                  {detectedIncomes.map((income, index) => (
-                    <Text key={`${income.name}-${index}`} className="text-green-700 text-sm">
-                      • {income.name || "Ingreso"}: {Number.isFinite(income.amount)
-                        ? `${initialCurrency}${income.amount.toLocaleString()}`
-                        : "Monto por confirmar"}{" "}
-                      ({income.frequency})
-                    </Text>
-                  ))}
+                  {detectedIncomes.map((income, index) => {
+                    const resolvedAmount = resolveIncomeAmount(income);
+                    const paymentCount = income.paymentDates?.length;
+                    const perCycleAmount = resolvedAmount && paymentCount && paymentCount > 0
+                      ? resolvedAmount / paymentCount
+                      : undefined;
+                    const upcoming = income.paymentDates ? getUpcomingPaymentPreview(income.paymentDates) : [];
+
+                    return (
+                      <View key={`${income.name}-${index}`} className="mb-2">
+                        <Text className="text-green-700 text-sm">
+                          • {income.name || "Ingreso"}: {resolvedAmount
+                            ? `${baseCurrencySymbol}${Math.round(resolvedAmount).toLocaleString()}`
+                            : "Monto por confirmar"}{" "}
+                          ({income.frequency})
+                        </Text>
+                        {income.isVariable && (
+                          <Text className="text-green-600 text-xs mt-1">
+                            Base conservadora: {income.minAmount
+                              ? `${baseCurrencySymbol}${Math.round(income.minAmount).toLocaleString()}`
+                              : resolvedAmount
+                                ? `${baseCurrencySymbol}${Math.round(resolvedAmount * 0.7).toLocaleString()}`
+                                : "por definir"}
+                            {income.maxAmount && income.maxAmount !== income.minAmount
+                              ? ` · variable hasta ${baseCurrencySymbol}${Math.round(income.maxAmount).toLocaleString()}`
+                              : ""}
+                          </Text>
+                        )}
+                        {perCycleAmount && paymentCount && (
+                          <Text className="text-green-600 text-xs mt-1">
+                            Distribución estimada: {paymentCount} pago(s) de aproximadamente {baseCurrencySymbol}
+                            {Math.round(perCycleAmount).toLocaleString()}
+                          </Text>
+                        )}
+                        {upcoming.length > 0 && (
+                          <Text className="text-green-600 text-xs mt-1">
+                            Próximos pagos: {upcoming.join(", ")}
+                          </Text>
+                        )}
+                        {income.description && (
+                          <Text className="text-green-600 text-xs mt-1">
+                            Nota: {income.description}
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })}
                 </View>
               )}
 
@@ -717,4 +817,80 @@ function mergePaymentDates(current?: number[], incoming?: number[]) {
     }
   });
   return set.size > 0 ? Array.from(set).sort((a, b) => a - b) : undefined;
+}
+
+const MONTH_LABELS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+
+function getUpcomingPaymentPreview(paymentDates: number[], limit = 4): string[] {
+  if (!Array.isArray(paymentDates) || paymentDates.length === 0) {
+    return [];
+  }
+
+  const today = new Date();
+  const results: Array<{ key: string; label: string; time: number }> = [];
+  const seenKeys = new Set<string>();
+  const targetCount = Math.min(Math.max(paymentDates.length * 2, 3), limit);
+
+  let monthOffset = 0;
+  while (results.length < targetCount && monthOffset < 8) {
+    const year = today.getFullYear();
+    const month = today.getMonth() + monthOffset;
+
+    paymentDates.forEach((rawDay) => {
+      if (typeof rawDay !== "number" || Number.isNaN(rawDay)) return;
+
+      const { adjustedDate, label } = computePaymentLabel(year, month, rawDay);
+      const key = `${adjustedDate.getFullYear()}-${adjustedDate.getMonth()}-${adjustedDate.getDate()}-${rawDay}`;
+
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        results.push({ key, label, time: adjustedDate.getTime() });
+      }
+    });
+
+    monthOffset += 1;
+  }
+
+  results.sort((a, b) => a.time - b.time);
+  return results.slice(0, targetCount).map((entry) => entry.label);
+}
+
+function computePaymentLabel(year: number, month: number, originalDay: number) {
+  const clampedDay = clampDayToMonth(year, month, originalDay);
+  const originalDate = new Date(year, month, clampedDay);
+  const { adjustedDate, adjusted } = adjustForWeekend(originalDate);
+
+  const originalLabel = `${clampedDay} ${MONTH_LABELS[originalDate.getMonth()]}`;
+  const adjustedLabel = `${adjustedDate.getDate()} ${MONTH_LABELS[adjustedDate.getMonth()]} (${WEEKDAY_LABELS[adjustedDate.getDay()]})`;
+  const label = adjusted && adjustedDate.getTime() !== originalDate.getTime()
+    ? `${originalLabel} → ${adjustedLabel}`
+    : adjustedLabel;
+
+  return { adjustedDate, label };
+}
+
+function clampDayToMonth(year: number, month: number, day: number) {
+  const maxDay = daysInMonth(year, month);
+  return Math.min(Math.max(1, Math.round(day)), maxDay);
+}
+
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function adjustForWeekend(date: Date) {
+  const result = new Date(date.getTime());
+  const dayOfWeek = result.getDay();
+  let adjusted = false;
+
+  if (dayOfWeek === 6) {
+    result.setDate(result.getDate() - 1); // Saturday → Friday
+    adjusted = true;
+  } else if (dayOfWeek === 0) {
+    result.setDate(result.getDate() - 2); // Sunday → Friday
+    adjusted = true;
+  }
+
+  return { adjustedDate: result, adjusted };
 }

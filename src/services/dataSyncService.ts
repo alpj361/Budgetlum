@@ -1,5 +1,6 @@
 import { ExtractedData } from "./smartExtractionService";
 import { IncomeSource, UserProfile } from "../types/user";
+import { ParsedIncome } from "../utils/incomeParser";
 
 interface UserStoreSnapshot {
   incomes: IncomeSource[];
@@ -47,9 +48,13 @@ export class DataSyncService {
 
     // Sync incomes
     extracted.incomes.forEach((income) => {
-      if (!Number.isFinite(income.amount)) {
+      const resolvedAmount = resolveIncomeAmount(income);
+      if (!Number.isFinite(resolvedAmount) || resolvedAmount <= 0) {
         return;
       }
+
+      const minAmount = Number.isFinite(income.minAmount) ? income.minAmount : undefined;
+      const maxAmount = Number.isFinite(income.maxAmount) ? income.maxAmount : undefined;
 
       const frequency = FREQUENCY_MAP[income.frequency] || "monthly";
       const normalizedName = income.type ? income.type.charAt(0).toUpperCase() + income.type.slice(1) : "Ingreso";
@@ -57,17 +62,19 @@ export class DataSyncService {
       const existing = store.incomes.find((source) => {
         const sameFrequency = source.frequency === frequency;
         const sameType = source.type === income.type;
-        const closeAmount = Math.abs((source.amount || 0) - income.amount) <= Math.max(50, income.amount * 0.05);
+        const closeAmount = Math.abs((source.amount || 0) - resolvedAmount) <= Math.max(50, resolvedAmount * 0.05);
         return sameFrequency && sameType && closeAmount;
       });
 
-      const baseAmount = income.minAmount ? income.minAmount : income.amount;
+      const baseAmount = income.isVariable
+        ? (minAmount ?? resolvedAmount * 0.7)
+        : resolvedAmount;
 
       if (existing) {
         store.updateIncome(existing.id, {
-          amount: income.amount,
-          minAmount: income.minAmount,
-          maxAmount: income.maxAmount,
+          amount: resolvedAmount,
+          minAmount,
+          maxAmount,
           isVariable: income.isVariable,
           baseAmount,
           stabilityPattern: income.isVariable ? "variable" : existing.stabilityPattern,
@@ -77,7 +84,7 @@ export class DataSyncService {
             ? {
                 type: "fixed-dates",
                 dates: income.paymentDates,
-                description: "Generado automáticamente por Bussy",
+                description: income.description || existing.paymentSchedule?.description || "Generado automáticamente por Bussy",
               }
             : existing.paymentSchedule,
           description: income.description || existing.description,
@@ -87,7 +94,7 @@ export class DataSyncService {
         store.addIncome({
           name: income.type ? `${normalizedName}` : "Ingreso",
           type: income.type,
-          amount: income.amount,
+          amount: resolvedAmount,
           frequency,
           isActive: true,
           isPrimary: store.incomes.length === 0,
@@ -97,14 +104,14 @@ export class DataSyncService {
             ? {
                 type: "fixed-dates",
                 dates: income.paymentDates,
-                description: "Generado automáticamente por Bussy",
+                description: income.description || "Generado automáticamente por Bussy",
               }
             : undefined,
           payDate: income.paymentDates && income.paymentDates.length === 1 ? income.paymentDates[0] : undefined,
           stabilityPattern: income.isVariable ? "variable" : "consistent",
           baseAmount,
-          minAmount: income.minAmount,
-          maxAmount: income.maxAmount,
+          minAmount,
+          maxAmount,
           isVariable: income.isVariable,
           isFoundational: income.confidence > 0.6,
         });
@@ -169,3 +176,19 @@ export class DataSyncService {
     };
   }
 }
+
+const resolveIncomeAmount = (income: ParsedIncome): number | undefined => {
+  if (Number.isFinite(income.amount)) {
+    return income.amount;
+  }
+  if (Number.isFinite(income.minAmount) && Number.isFinite(income.maxAmount)) {
+    return ((income.minAmount as number) + (income.maxAmount as number)) / 2;
+  }
+  if (Number.isFinite(income.minAmount)) {
+    return income.minAmount;
+  }
+  if (Number.isFinite(income.maxAmount)) {
+    return income.maxAmount;
+  }
+  return undefined;
+};

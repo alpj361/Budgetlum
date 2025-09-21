@@ -38,26 +38,23 @@ const VALID_BUDGETING_STYLES = ["strict", "flexible", "balanced"];
 export const validateIncomeInput = (income: IncomeValidationInput): string[] => {
   const errors: string[] = [];
 
-  if (income.amount === null || income.amount === undefined || Number.isNaN(income.amount)) {
-    errors.push("Ingresa un monto válido para el ingreso");
-  } else {
-    if (income.amount <= 0) {
-      errors.push("El monto debe ser positivo");
-    }
-    if (income.amount > 2_000_000) {
-      errors.push("¿Seguro que el monto es correcto? Parece muy alto");
+  if (income.amount !== null && income.amount !== undefined) {
+    if (Number.isNaN(income.amount)) {
+      errors.push("El monto debe ser numérico");
+    } else if (income.amount < 0) {
+      errors.push("El monto no puede ser negativo");
     }
   }
 
-  if (!income.frequency || !VALID_INCOME_FREQUENCIES.includes(income.frequency)) {
-    errors.push("Selecciona una frecuencia válida (semanal, mensual, anual...)");
+  if (income.frequency && !VALID_INCOME_FREQUENCIES.includes(income.frequency)) {
+    errors.push("Frecuencia inválida, usa semanal/quincenal/mensual/etc.");
   }
 
-  if (!income.type || !VALID_INCOME_TYPES.includes(income.type)) {
-    errors.push("Selecciona un tipo de ingreso");
+  if (income.type && !VALID_INCOME_TYPES.includes(income.type)) {
+    errors.push("Tipo de ingreso inválido");
   }
 
-  if (income.paymentDates) {
+  if (income.paymentDates && income.paymentDates.length > 0) {
     income.paymentDates.forEach((date) => {
       if (typeof date !== "number" || !Number.isInteger(date)) {
         errors.push("Las fechas de pago deben ser números enteros");
@@ -78,10 +75,6 @@ export const validatePreferencesInput = (preferences: PreferencesValidationInput
   if (!preferences) return [];
   const errors: string[] = [];
 
-  if (preferences.budgetingStyle && !VALID_BUDGETING_STYLES.includes(preferences.budgetingStyle)) {
-    errors.push("Estilo de presupuesto inválido");
-  }
-
   if (preferences.savingsGoal !== undefined && preferences.savingsGoal !== null) {
     if (Number.isNaN(preferences.savingsGoal)) {
       errors.push("El ahorro debe ser un número");
@@ -90,7 +83,11 @@ export const validatePreferencesInput = (preferences: PreferencesValidationInput
     }
   }
 
-  if (preferences.paymentDates) {
+  if (preferences.budgetingStyle && !VALID_BUDGETING_STYLES.includes(preferences.budgetingStyle)) {
+    errors.push("Estilo de presupuesto inválido");
+  }
+
+  if (preferences.paymentDates && preferences.paymentDates.length > 0) {
     preferences.paymentDates.forEach((date) => {
       if (typeof date !== "number" || !Number.isInteger(date)) {
         errors.push("Las fechas de pago deben ser números enteros");

@@ -11,14 +11,14 @@ interface Props {
 const getStatusColor = (validation: ChatValidationState | null) => {
   if (!validation) return "#CBD5F5";
   if (validation.errors.length > 0 || validation.schemaErrors.length > 0) return "#FCA5A5";
-  if (validation.suggestions.length > 0) return "#FDE68A";
+  if (validation.suggestions.length > 0) return "#BFDBFE";
   return "#BBF7D0";
 };
 
 const getStatusIcon = (validation: ChatValidationState | null) => {
   if (!validation) return "information-circle-outline";
   if (validation.errors.length > 0 || validation.schemaErrors.length > 0) return "alert-circle";
-  if (validation.suggestions.length > 0) return "help-circle-outline";
+  if (validation.suggestions.length > 0) return "information-circle-outline";
   return "checkmark-circle";
 };
 
@@ -45,7 +45,7 @@ export const ValidationSummaryCard: React.FC<Props> = ({ validation, syncSummary
           {hasErrors
             ? "Necesitamos confirmar algunos datos"
             : hasSuggestions
-              ? "Casi listo, revisa esto"
+              ? "Observaciones para afinar"
               : "Datos sincronizados"}
         </Text>
       </View>
