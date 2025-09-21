@@ -187,13 +187,11 @@ export default function AdvancedIncomeSetupScreen() {
     resetConversation,
   } = useAIChat();
 
-  const { incomes, profile, setOnboardingStep, updateProfile, addIncome } = useUserStore((state) => ({
-    incomes: state.incomes,
-    profile: state.userProfile,
-    setOnboardingStep: state.setOnboardingStep,
-    updateProfile: state.updateProfile,
-    addIncome: state.addIncome,
-  }));
+  const incomes = useUserStore((state) => state.incomes);
+  const profile = useUserStore((state) => state.userProfile);
+  const setOnboardingStep = useUserStore((state) => state.setOnboardingStep);
+  const updateProfile = useUserStore((state) => state.updateProfile);
+  const addIncome = useUserStore((state) => state.addIncome);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
@@ -210,9 +208,9 @@ export default function AdvancedIncomeSetupScreen() {
       QUICK_ACTION_BLUEPRINTS.map(({ id, label, buildPayload }) => ({
         id,
         label,
-        payload: buildPayload(currencySymbol),
+        payload: buildPayload(initialCurrency),
       })),
-    [currencySymbol]
+    [initialCurrency]
   );
 
   const scrollToBottom = useCallback(() => {
@@ -221,14 +219,11 @@ export default function AdvancedIncomeSetupScreen() {
     }, 120);
   }, []);
 
-  const initialIncomesRef = useRef(incomes);
-  const initialProfileRef = useRef(profile);
-  const initialCurrencyRef = useRef(currencySymbol);
+  const [initialIncomes] = useState(incomes);
+  const [initialProfile] = useState(profile);
+  const [initialCurrency] = useState(currencySymbol);
 
   useEffect(() => {
-    const initialIncomes = initialIncomesRef.current;
-    const initialProfile = initialProfileRef.current;
-    const symbol = initialCurrencyRef.current;
 
     resetConversation();
     setIntroMessage(INTRO_MESSAGE);
@@ -244,7 +239,7 @@ export default function AdvancedIncomeSetupScreen() {
     configureSession({
       systemPrompt: buildIncomeSystemPrompt({
         userInput: "",
-        currencySymbol: symbol,
+        currencySymbol: initialCurrency,
         profile: initialProfile || null,
         detectedIncomes: initialIncomes.map(mapIncomeToParsed),
         existingIncomes: initialIncomes,
@@ -330,8 +325,8 @@ export default function AdvancedIncomeSetupScreen() {
       });
     });
 
-    if (profile?.paymentDates?.length) {
-      profile.paymentDates.forEach((day) => {
+    if (initialProfile?.paymentDates?.length) {
+      initialProfile.paymentDates.forEach((day) => {
         if (typeof day === "number" && day > 0 && day <= 31) {
           dates.add(Math.round(day));
         }
@@ -347,7 +342,7 @@ export default function AdvancedIncomeSetupScreen() {
     }
 
     return Array.from(dates).sort((a, b) => a - b);
-  }, [detectedIncomes, lastExtraction, profile]);
+  }, [detectedIncomes, lastExtraction, initialProfile]);
 
   useEffect(() => {
     const hasIncomes = detectedIncomes.length > 0;
@@ -451,7 +446,7 @@ export default function AdvancedIncomeSetupScreen() {
 
     const prompt = buildIncomeSystemPrompt({
       userInput: message,
-      currencySymbol,
+      currencySymbol: initialCurrency,
       profile: profile || null,
       detectedIncomes,
       existingIncomes: incomes,
@@ -624,7 +619,7 @@ export default function AdvancedIncomeSetupScreen() {
                   {detectedIncomes.map((income, index) => (
                     <Text key={`${income.name}-${index}`} className="text-green-700 text-sm">
                       • {income.name || "Ingreso"}: {Number.isFinite(income.amount)
-                        ? `${currencySymbol}${income.amount.toLocaleString()}`
+                        ? `${initialCurrency}${income.amount.toLocaleString()}`
                         : "Monto por confirmar"}{" "}
                       ({income.frequency})
                     </Text>
