@@ -221,43 +221,50 @@ export default function AdvancedIncomeSetupScreen() {
     }, 120);
   }, []);
 
-  const initializeIncomeConversation = useCallback(() => {
+  const initialIncomesRef = useRef(incomes);
+  const initialProfileRef = useRef(profile);
+  const initialCurrencyRef = useRef(currencySymbol);
+
+  useEffect(() => {
+    const initialIncomes = initialIncomesRef.current;
+    const initialProfile = initialProfileRef.current;
+    const symbol = initialCurrencyRef.current;
+
     resetConversation();
     setIntroMessage(INTRO_MESSAGE);
-    setDetectedIncomes(incomes.map(mapIncomeToParsed));
+    setDetectedIncomes(initialIncomes.map(mapIncomeToParsed));
     setCurrentInput("");
     setConversationPhase("discovery");
 
     const existingPaymentDates = [
-      ...incomes.flatMap((income) => income.paymentSchedule?.dates || []),
-      ...(profile?.paymentDates || []),
+      ...initialIncomes.flatMap((income) => income.paymentSchedule?.dates || []),
+      ...(initialProfile?.paymentDates || []),
     ].filter((day): day is number => typeof day === "number");
 
     configureSession({
       systemPrompt: buildIncomeSystemPrompt({
         userInput: "",
-        currencySymbol,
-        profile: profile || null,
-        detectedIncomes: incomes.map(mapIncomeToParsed),
-        existingIncomes: incomes,
+        currencySymbol: symbol,
+        profile: initialProfile || null,
+        detectedIncomes: initialIncomes.map(mapIncomeToParsed),
+        existingIncomes: initialIncomes,
         conversationPhase: "discovery",
         paymentDates: existingPaymentDates,
       }),
       context: {
-        existingIncomes: incomes,
-        profile,
+        existingIncomes: initialIncomes,
+        profile: initialProfile,
         conversationPhase: "discovery",
         paymentDates: existingPaymentDates,
       },
       temperature: 0.65,
       maxTokens: 900,
     });
-  }, [configureSession, currencySymbol, incomes, profile, resetConversation]);
 
-  useEffect(() => {
-    initializeIncomeConversation();
-    return () => resetConversation();
-  }, [initializeIncomeConversation, resetConversation]);
+    return () => {
+      resetConversation();
+    };
+  }, [configureSession, resetConversation]);
 
   useEffect(() => {
     scrollToBottom();
