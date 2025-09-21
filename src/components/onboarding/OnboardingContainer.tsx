@@ -90,14 +90,46 @@ export default function OnboardingContainer({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="flex-1 px-6">
+          <View style={{
+            flex: 1,
+            width: '90%',
+            alignSelf: 'center',
+            marginHorizontal: 'auto',
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 2,
+          }}>
             {/* Title Section */}
             <View className="mb-8">
-              <Text className="text-3xl font-bold text-gray-900 mb-3">
+              <Text
+                style={{
+                  textAlign: 'center',
+                  paddingVertical: 16,
+                  width: '100%',
+                  fontSize: 28,
+                  fontWeight: 'bold',
+                  color: '#111827',
+                  marginBottom: 12,
+                }}
+              >
                 {title}
               </Text>
               {subtitle && (
-                <Text className="text-lg text-gray-600 leading-6">
+                <Text
+                  style={{
+                    textAlign: 'center',
+                    paddingVertical: 8,
+                    width: '100%',
+                    fontSize: 16,
+                    lineHeight: 24,
+                    color: '#4B5563',
+                  }}
+                >
                   {subtitle}
                 </Text>
               )}
