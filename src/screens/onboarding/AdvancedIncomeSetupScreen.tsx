@@ -268,7 +268,7 @@ export default function AdvancedIncomeSetupScreen() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping, introMessage, scrollToBottom]);
+  }, [messages, isTyping, introMessage]);
 
   useEffect(() => {
     if (!lastExtraction) return;
@@ -378,7 +378,7 @@ export default function AdvancedIncomeSetupScreen() {
     if (conversationPhase !== nextPhase) {
       setConversationPhase(nextPhase);
     }
-  }, [aggregatedPaymentDates, conversationPhase, detectedIncomes, validation]);
+  }, [aggregatedPaymentDates, detectedIncomes, validation]);
 
   const conversationSteps = useMemo<ConversationStep[]>(() => {
     const discoveryStatus: StepStatus = conversationPhase === "discovery" ? "current" : "complete";
