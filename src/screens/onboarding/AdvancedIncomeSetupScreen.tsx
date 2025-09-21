@@ -99,7 +99,7 @@ const buildIncomeSystemPrompt = ({
   const schedulePreviewLines = detectedIncomes
     .map((income) => {
       if (!income.paymentDates || income.paymentDates.length === 0) return null;
-      const preview = getUpcomingPaymentPreview(income.paymentDates, 4);
+      const preview = getUpcomingPaymentPreview(income.paymentDates, 6);
       if (!preview.length) return null;
       return `- ${income.name || "Ingreso"}: ${preview.join(", ")}`;
     })
@@ -128,7 +128,7 @@ FASE ACTUAL: ${conversationPhase.toUpperCase()}
 MENSAJE DEL USUARIO: "${userInput}"
 
 Perfil del usuario:
-- País: ${profile?.country || "GT"}
+- País: ${profile?.country || "sin especificar"}
 - Etapa de vida: ${profile?.lifeStage || "desconocida"}
 - Experiencia con presupuesto: ${profile?.budgetingExperience || "desconocida"}
 
@@ -164,35 +164,39 @@ interface QuickActionBlueprint {
 const QUICK_ACTION_BLUEPRINTS: QuickActionBlueprint[] = [
   {
     id: "salary",
-    label: "Salario quincenal",
-    buildPayload: (currency) => `Trabajo en oficina y gano ${currency}4500 al mes, me pagan el 15 y 30`,
+    label: "Salario fijo quincenal",
+    buildPayload: (currency) =>
+      `Tengo un salario fijo de ${currency}3200 al mes dividido en dos pagos iguales los días 15 y 30. Si cae en fin de semana lo adelantan al viernes.`,
   },
   {
     id: "freelance",
     label: "Ingresos freelance",
-    buildPayload: (currency) => `Además hago trabajos freelance, me caen como ${currency}1200 cada mes pero varía`,
+    buildPayload: (currency) =>
+      `Además hago trabajos freelance. Normalmente cierro ${currency}1200 al mes pero puede variar un poco según los proyectos.`,
   },
   {
     id: "remittance",
     label: "Remesas",
-    buildPayload: (currency) => `Recibo remesas de mi hermano, son ${currency}800 el primer domingo de cada mes`,
+    buildPayload: (currency) =>
+      `Recibo remesas de mi familia alrededor de ${currency}800 cada mes, casi siempre llegan el primer fin de semana.`,
   },
   {
     id: "business",
     label: "Negocio propio",
-    buildPayload: (currency) => `Tengo un pequeño negocio y limpio ${currency}2000 al mes, suele entrar entre el 10 y 12`,
+    buildPayload: (currency) =>
+      `Tengo un pequeño negocio y después de gastos me quedan como ${currency}2000 al mes. Regularmente cobro entre el día 10 y 12.`,
   },
   {
     id: "commission",
     label: "Salario + comisión",
     buildPayload: (currency) =>
-      `Mi salario base es ${currency}3500 al mes y comisiones mínimas ${currency}800. Todo lo depositan el 28, si cae fin de semana lo hacen el viernes antes`,
+      `Mi salario base es ${currency}3500 al mes y las comisiones suelen sumar mínimo ${currency}800 adicionales. Todo lo depositan el día 28 y si cae en fin de semana lo mueven al viernes anterior.`,
   },
   {
     id: "hourly",
     label: "Pago por horas",
     buildPayload: (currency) =>
-      `Trabajo por hora a ${currency}25 y normalmente completo 40 horas a la semana, me pagan cada viernes`,
+      `Trabajo por hora a ${currency}25. Planeo trabajar 40 horas por semana y me pagan cada viernes.`,
   },
 ];
 
@@ -263,7 +267,7 @@ export default function AdvancedIncomeSetupScreen() {
   const resetConversationRef = useRef(resetConversation);
   resetConversationRef.current = resetConversation;
 
-  const baseCurrencySymbol = initialCurrencyRef.current || currencySymbol || "";
+  const baseCurrencySymbol = initialCurrencyRef.current || currencySymbol || "$";
 
   const quickActions = useMemo<QuickAction[]>(() => {
     return QUICK_ACTION_BLUEPRINTS.map(({ id, label, buildPayload }) => ({
@@ -357,13 +361,20 @@ export default function AdvancedIncomeSetupScreen() {
             ),
           } as ParsedIncome;
 
+          if (!nextIncome.paymentDates || nextIncome.paymentDates.length === 0) {
+            const inferredDates = inferPaymentDatesFromDescription(nextIncome.description);
+            if (inferredDates) {
+              nextIncome.paymentDates = inferredDates;
+            }
+          }
+
           if (index >= 0) {
             combined[index] = nextIncome;
           } else {
             combined.push({
               ...income,
               amount: cleanedAmount,
-              paymentDates: mergedPaymentDates,
+              paymentDates: mergedPaymentDates || inferPaymentDatesFromDescription(income.description),
               confidence: typeof income.confidence === "number" ? income.confidence : 0,
             });
           }
@@ -822,25 +833,30 @@ function mergePaymentDates(current?: number[], incoming?: number[]) {
 const MONTH_LABELS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 
-function getUpcomingPaymentPreview(paymentDates: number[], limit = 4): string[] {
+function getUpcomingPaymentPreview(paymentDates: number[], limit = 6): string[] {
   if (!Array.isArray(paymentDates) || paymentDates.length === 0) {
     return [];
   }
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const results: Array<{ key: string; label: string; time: number }> = [];
   const seenKeys = new Set<string>();
-  const targetCount = Math.min(Math.max(paymentDates.length * 2, 3), limit);
+  const targetCount = Math.min(Math.max(paymentDates.length * 3, 3), limit);
 
   let monthOffset = 0;
-  while (results.length < targetCount && monthOffset < 8) {
-    const year = today.getFullYear();
-    const month = today.getMonth() + monthOffset;
+  while (results.length < targetCount && monthOffset < 12) {
+    const seedDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+    const year = seedDate.getFullYear();
+    const month = seedDate.getMonth();
 
     paymentDates.forEach((rawDay) => {
       if (typeof rawDay !== "number" || Number.isNaN(rawDay)) return;
 
       const { adjustedDate, label } = computePaymentLabel(year, month, rawDay);
+      if (adjustedDate.getTime() < today.getTime()) {
+        return;
+      }
       const key = `${adjustedDate.getFullYear()}-${adjustedDate.getMonth()}-${adjustedDate.getDate()}-${rawDay}`;
 
       if (!seenKeys.has(key)) {
@@ -893,4 +909,37 @@ function adjustForWeekend(date: Date) {
   }
 
   return { adjustedDate: result, adjusted };
+}
+
+function inferPaymentDatesFromDescription(description?: string | null) {
+  if (!description) return undefined;
+
+  const text = description.toLowerCase();
+  const matches = new Set<number>();
+
+  const explicitNumbers = text.match(/\b([1-3]?\d)\b/g);
+  if (explicitNumbers) {
+    explicitNumbers.forEach((match) => {
+      const parsed = parseInt(match, 10);
+      if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= 31) {
+        matches.add(parsed);
+      }
+    });
+  }
+
+  if (text.includes("fin de mes") || text.includes("fin del mes") || text.includes("último día")) {
+    matches.add(31);
+  }
+  if (text.includes("inicio de mes") || text.includes("principio de mes") || text.includes("primer día")) {
+    matches.add(1);
+  }
+  if (text.includes("quincena") || text.includes("medio mes")) {
+    matches.add(15);
+  }
+
+  if (matches.size === 0) {
+    return undefined;
+  }
+
+  return Array.from(matches).sort((a, b) => a - b);
 }
