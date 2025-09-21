@@ -3,6 +3,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import AppNavigator from "./src/navigation/AppNavigator";
 import ErrorBoundary from "./src/components/ErrorBoundary";
+import { AIChatProvider } from "./src/contexts/AIChatContext";
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -30,7 +31,9 @@ export default function App() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <AppNavigator />
+          <AIChatProvider>
+            <AppNavigator />
+          </AIChatProvider>
           <StatusBar style="auto" />
         </SafeAreaProvider>
       </GestureHandlerRootView>

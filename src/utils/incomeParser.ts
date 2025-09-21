@@ -6,6 +6,8 @@ export interface ParsedIncome {
   isVariable?: boolean;
   minAmount?: number;
   maxAmount?: number;
+  paymentDates?: number[];
+  description?: string;
   confidence: number; // 0-1 score for parsing confidence
 }
 

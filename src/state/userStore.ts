@@ -58,6 +58,8 @@ const createDefaultProfile = (): UserProfile => ({
   onboardingStep: 0,
   preferredBudgetPeriod: "",
   enableBussyGuidance: true,
+  paymentDates: [],
+  budgetingPriorities: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });

@@ -8,7 +8,16 @@ export interface IntelligentIncomeData {
   amount?: number;
   minAmount?: number;
   maxAmount?: number;
-  frequency?: "monthly" | "bi-weekly" | "weekly" | "project" | "seasonal" | "daily";
+  frequency?:
+    | "monthly"
+    | "bi-weekly"
+    | "weekly"
+    | "project"
+    | "seasonal"
+    | "daily"
+    | "quarterly"
+    | "yearly"
+    | "irregular";
   isVariable?: boolean;
   country?: string;
   currency?: string;
