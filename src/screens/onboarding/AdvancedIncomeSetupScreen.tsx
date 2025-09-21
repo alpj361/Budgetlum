@@ -264,7 +264,7 @@ export default function AdvancedIncomeSetupScreen() {
     return () => {
       resetConversation();
     };
-  }, [configureSession, resetConversation]);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
