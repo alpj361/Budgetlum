@@ -139,31 +139,12 @@ export default function AIChatScreen() {
     }
   };
 
-  // Auto-scroll to bottom when new messages are added
-  useEffect(() => {
-    if (messages.length > 0) {
-      // Only scroll when a new message is actually added
-      const timeoutId = setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 200);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [messages.length]);
-
-  // Handle keyboard showing
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      // Scroll to bottom when keyboard appears to ensure input is visible
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 150);
-    });
-
-    return () => {
-      keyboardDidShowListener.remove();
-    };
-  }, []);
+  // Only auto-scroll when user sends a message or receives a response
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
 
   const sendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -179,6 +160,9 @@ export default function AIChatScreen() {
     addMessage({ ...userMessage, role: userMessage.role as 'user' | 'assistant' });
     setInputText("");
     setIsLoading(true);
+
+    // Only scroll after user sends message
+    scrollToBottom();
 
     try {
       // Build context
@@ -220,6 +204,9 @@ export default function AIChatScreen() {
 
       setMessages(prev => [...prev, assistantMessage]);
       addMessage({ ...assistantMessage, role: assistantMessage.role as 'user' | 'assistant' });
+
+      // Only scroll after AI responds
+      scrollToBottom();
 
       // Handle pending actions
       if (extractedActions.length > 0) {
@@ -310,19 +297,48 @@ export default function AIChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
-      <View className="flex-1 bg-gray-50">
-        {/* Messages */}
+    <View style={{ flex: 1 }} className="bg-gray-50">
+      {/* Header with mode toggle and progress */}
+      <View className="bg-white border-b border-gray-200 px-4 py-3">
+        <View className="flex-row justify-between items-center">
+          <TouchableOpacity
+            onPress={toggleAdvancedMode}
+            className="flex-row items-center"
+          >
+            <Ionicons
+              name={currentMode === 'advanced' ? "construct" : "chatbubble-ellipses"}
+              size={20}
+              color={currentMode === 'advanced' ? "#10b981" : "#6b7280"}
+            />
+            <Text className={`ml-2 font-medium ${
+              currentMode === 'advanced' ? "text-green-600" : "text-gray-700"
+            }`}>
+              {currentMode === 'advanced' ? 'Modo Avanzado' : 'Chat Estándar'}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color="#6b7280" className="ml-1" />
+          </TouchableOpacity>
+
+          {currentMode === 'advanced' && (
+            <View className="flex-row items-center">
+              <View className="bg-green-100 rounded-full px-3 py-1">
+                <Text className="text-green-800 text-xs font-medium">
+                  {Math.round(getCurrentStepProgress() * 100)}% completo
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Messages Container */}
+      <View className="flex-1">
         <ScrollView
           ref={scrollViewRef}
           className="flex-1 px-4"
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{ paddingBottom: 20 }}
         >
           <View className="py-4 space-y-4">
             {messages.map((message) => (
@@ -368,8 +384,13 @@ export default function AIChatScreen() {
             )}
           </View>
         </ScrollView>
+      </View>
 
-        {/* Input Area */}
+      {/* Fixed Input Area */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
         <View className="bg-white border-t border-gray-200 px-4 py-3">
           <View className="flex-row items-end space-x-3">
             <TouchableOpacity
@@ -378,7 +399,7 @@ export default function AIChatScreen() {
             >
               <Ionicons name="trash-outline" size={20} color="#6b7280" />
             </TouchableOpacity>
-            
+
             <View className="flex-1 bg-gray-100 rounded-2xl px-4 py-3">
               <TextInput
                 value={inputText}
@@ -395,15 +416,10 @@ export default function AIChatScreen() {
                 onSubmitEditing={sendMessage}
                 returnKeyType="send"
                 blurOnSubmit={false}
-                onFocus={() => {
-                  // Scroll to bottom when user focuses on input
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollToEnd({ animated: true });
-                  }, 300);
-                }}
+                onFocus={scrollToBottom}
               />
             </View>
-            
+
             <TouchableOpacity
               onPress={sendMessage}
               disabled={!inputText.trim() || isLoading}
@@ -421,7 +437,60 @@ export default function AIChatScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+
+      {/* Mode Selection Modal */}
+      <Modal
+        visible={showModeSelector}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModeSelector(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 justify-center items-center"
+          onPress={() => setShowModeSelector(false)}
+        >
+          <View className="bg-white rounded-xl mx-6 p-6">
+            <Text className="text-lg font-bold text-gray-900 mb-4">
+              Seleccionar Modo
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => selectMode('standard')}
+              className={`p-4 rounded-lg border mb-3 ${
+                currentMode === 'standard'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200'
+              }`}
+            >
+              <View className="flex-row items-center">
+                <Ionicons name="chatbubble-ellipses" size={24} color="#6b7280" />
+                <View className="ml-3 flex-1">
+                  <Text className="font-semibold text-gray-900">Chat Estándar</Text>
+                  <Text className="text-gray-600 text-sm">Consejos y consultas generales</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => selectMode('advanced')}
+              className={`p-4 rounded-lg border ${
+                currentMode === 'advanced'
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-200'
+              }`}
+            >
+              <View className="flex-row items-center">
+                <Ionicons name="construct" size={24} color="#10b981" />
+                <View className="ml-3 flex-1">
+                  <Text className="font-semibold text-gray-900">Modo Avanzado</Text>
+                  <Text className="text-gray-600 text-sm">Configuración de presupuesto guiada</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }

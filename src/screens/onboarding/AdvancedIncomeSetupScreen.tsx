@@ -61,29 +61,12 @@ export default function AdvancedIncomeSetupScreen() {
   const countryConfig = CENTRAL_AMERICA_COUNTRIES.find(c => c.code === (profile?.country || "GT"));
   const currencySymbol = getCurrencySymbol(profile?.country || "GT");
 
-  // Auto-scroll to bottom when new messages are added
-  useEffect(() => {
-    if (messages.length > 0) {
-      const timeoutId = setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 200);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [messages.length]);
-
-  // Handle keyboard showing
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 150);
-    });
-
-    return () => {
-      keyboardDidShowListener.remove();
-    };
-  }, []);
+  // Only scroll when user sends a message or receives a response
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
 
   // Use intelligent Bussy AI service
 
@@ -100,6 +83,9 @@ export default function AdvancedIncomeSetupScreen() {
     setMessages(prev => [...prev, userMessage]);
     setCurrentInput("");
     setIsProcessing(true);
+
+    // Scroll after user sends message
+    scrollToBottom();
 
     // Use intelligent Bussy AI processing
     setTimeout(async () => {
@@ -149,6 +135,9 @@ export default function AdvancedIncomeSetupScreen() {
 
         setMessages(prev => [...prev, bussyMessage]);
         setIsProcessing(false);
+
+        // Scroll after AI responds
+        scrollToBottom();
 
       } catch (error) {
         console.error("Bussy AI processing error:", error);
@@ -329,11 +318,7 @@ export default function AdvancedIncomeSetupScreen() {
               textAlignVertical="top"
               onSubmitEditing={sendMessage}
               editable={!isProcessing}
-              onFocus={() => {
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 300);
-              }}
+              onFocus={scrollToBottom}
             />
 
             <AnimatedPressable
