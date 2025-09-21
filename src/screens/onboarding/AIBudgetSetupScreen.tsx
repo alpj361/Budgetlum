@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import OnboardingContainer from "../../components/onboarding/OnboardingContainer";
 import AnimatedPressable from "../../components/AnimatedPressable";
@@ -45,6 +45,30 @@ export default function AIBudgetSetupScreen() {
 
   useEffect(() => {
     initializeBudgetConversation();
+  }, []);
+
+  // Auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    if (messages.length > 0) {
+      const timeoutId = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 200);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length]);
+
+  // Handle keyboard showing
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
   }, []);
 
   const initializeBudgetConversation = async () => {
@@ -169,11 +193,6 @@ No necesitas ser súper exacto - solo cuéntame tu realidad y yo te ayudo a orga
       };
 
       setMessages(prev => [...prev, bussyMessage]);
-
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
 
     } catch (error) {
       console.error("Error processing budget message:", error);
@@ -455,6 +474,8 @@ Si no hay información específica sobre presupuesto, responde: {"extracted": []
           ref={scrollViewRef}
           className="flex-1 mb-4"
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           contentContainerStyle={{ paddingBottom: 20 }}
         >
           {messages.map(renderMessage)}
@@ -500,7 +521,7 @@ Si no hay información específica sobre presupuesto, responde: {"extracted": []
         {/* Input Area */}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
         >
           <View className="flex-row items-end space-x-3 p-4 bg-gray-50 rounded-xl">
             <TextInput
@@ -514,6 +535,11 @@ Si no hay información específica sobre presupuesto, responde: {"extracted": []
               textAlignVertical="top"
               onSubmitEditing={sendMessage}
               editable={!isProcessing}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 300);
+              }}
             />
 
             <AnimatedPressable

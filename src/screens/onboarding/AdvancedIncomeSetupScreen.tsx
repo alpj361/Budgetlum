@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { View, Text, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { View, Text, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import OnboardingContainer from "../../components/onboarding/OnboardingContainer";
 import AnimatedPressable from "../../components/AnimatedPressable";
@@ -60,6 +60,30 @@ export default function AdvancedIncomeSetupScreen() {
   // Get country-specific data
   const countryConfig = CENTRAL_AMERICA_COUNTRIES.find(c => c.code === (profile?.country || "GT"));
   const currencySymbol = getCurrencySymbol(profile?.country || "GT");
+
+  // Auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    if (messages.length > 0) {
+      const timeoutId = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 200);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length]);
+
+  // Handle keyboard showing
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   // Use intelligent Bussy AI service
 
@@ -125,11 +149,6 @@ export default function AdvancedIncomeSetupScreen() {
 
         setMessages(prev => [...prev, bussyMessage]);
         setIsProcessing(false);
-
-        // Auto-scroll to bottom
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
 
       } catch (error) {
         console.error("Bussy AI processing error:", error);
@@ -249,6 +268,8 @@ export default function AdvancedIncomeSetupScreen() {
           ref={scrollViewRef}
           className="flex-1 mb-4"
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           contentContainerStyle={{ paddingBottom: 20 }}
         >
           {messages.map(renderMessage)}
@@ -294,7 +315,7 @@ export default function AdvancedIncomeSetupScreen() {
         {/* Input Area */}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
         >
           <View className="flex-row items-end space-x-3 p-4 bg-gray-50 rounded-xl">
             <TextInput
@@ -308,6 +329,11 @@ export default function AdvancedIncomeSetupScreen() {
               textAlignVertical="top"
               onSubmitEditing={sendMessage}
               editable={!isProcessing}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 300);
+              }}
             />
 
             <AnimatedPressable
