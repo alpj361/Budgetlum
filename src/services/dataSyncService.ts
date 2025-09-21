@@ -11,7 +11,7 @@ interface UserStoreSnapshot {
     title: string;
     description?: string;
     targetAmount: number;
-    currentAmount?: number;
+    currentAmount: number;
     targetDate?: string;
     priority: "high" | "medium" | "low";
     type: "emergency_fund" | "debt_payoff" | "savings" | "investment" | "purchase" | "other";
@@ -35,6 +35,7 @@ const FREQUENCY_MAP: Record<string, IncomeSource["frequency"]> = {
   irregular: "irregular",
   project: "project",
   seasonal: "seasonal",
+  daily: "daily",
 };
 
 export class DataSyncService {

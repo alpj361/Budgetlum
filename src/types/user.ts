@@ -112,7 +112,7 @@ export interface IncomeSource {
   name: string;
   type?: "salary" | "freelance" | "business" | "rental" | "remittance" | "other";
   amount: number; // Base amount (for simple mode) or total estimated monthly
-  frequency: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "yearly" | "irregular" | "project" | "seasonal"; // Enhanced with new types
+  frequency: "weekly" | "bi-weekly" | "monthly" | "quarterly" | "yearly" | "irregular" | "project" | "seasonal" | "daily"; // Enhanced with new types
   paymentStructure?: PaymentStructure; // New structured approach
   paymentSchedule?: PaymentSchedule; // Specific payment dates/patterns
   nextPayDate?: string;

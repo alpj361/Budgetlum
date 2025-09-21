@@ -1,7 +1,7 @@
 export interface ParsedIncome {
   name: string;
   amount: number;
-  frequency: 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'yearly' | 'irregular';
+  frequency: 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'yearly' | 'irregular' | 'project' | 'seasonal' | 'daily';
   type?: 'salary' | 'freelance' | 'business' | 'rental' | 'remittance' | 'other';
   isVariable?: boolean;
   minAmount?: number;
@@ -55,7 +55,16 @@ export function parseIncomeFromText(text: string): ParsedIncome[] {
     'año': 'yearly',
     'por año': 'yearly',
     'irregular': 'irregular',
-    'variable': 'irregular'
+    'variable': 'irregular',
+    'por proyecto': 'project',
+    'proyecto': 'project',
+    'seasonal': 'seasonal',
+    'temporada': 'seasonal',
+    'estacional': 'seasonal',
+    'diario': 'daily',
+    'diaria': 'daily',
+    'diariamente': 'daily',
+    'daily': 'daily'
   };
 
   // Income type patterns

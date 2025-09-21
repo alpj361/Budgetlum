@@ -597,11 +597,11 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
                     <View className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
                     <View
                       className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"
-                      style={{ animationDelay: "0.2s" }}
+                      style={{ animationDelay: "0.2s" } as any}
                     />
                     <View
                       className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"
-                      style={{ animationDelay: "0.4s" }}
+                      style={{ animationDelay: "0.4s" } as any}
                     />
                   </View>
                 </View>

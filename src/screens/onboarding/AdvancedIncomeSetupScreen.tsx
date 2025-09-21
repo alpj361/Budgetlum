@@ -29,6 +29,13 @@ Mientras más detalles me des (montos, frecuencia, días de pago) mejor podré a
 type AdvancedIncomeSetupNavigationProp = NativeStackNavigationProp<OnboardingStackParamList, "AdvancedIncomeSetup">;
 
 type IncomeConversationPhase = "discovery" | "amounts" | "schedule" | "confirmation";
+type StepStatus = "complete" | "current" | "upcoming";
+
+interface ConversationStep {
+  id: string;
+  label: string;
+  status: StepStatus;
+}
 
 interface IncomePromptParams {
   userInput: string;
@@ -366,43 +373,30 @@ export default function AdvancedIncomeSetupScreen() {
     }
   }, [aggregatedPaymentDates, conversationPhase, detectedIncomes, validation]);
 
-  const conversationSteps = useMemo(() => {
-    const steps = [
-      {
-        id: "discovery",
-        label: "Fuentes",
-        status: conversationPhase === "discovery" ? "current" : "complete",
-      },
-      {
-        id: "amounts",
-        label: "Montos",
-        status:
-          conversationPhase === "discovery"
+  const conversationSteps = useMemo<ConversationStep[]>(() => {
+    const discoveryStatus: StepStatus = conversationPhase === "discovery" ? "current" : "complete";
+    const amountsStatus: StepStatus =
+      conversationPhase === "discovery"
+        ? "upcoming"
+        : conversationPhase === "amounts"
+          ? "current"
+          : "complete";
+    const scheduleStatus: StepStatus =
+      conversationPhase === "schedule"
+        ? "current"
+        : conversationPhase === "confirmation"
+          ? "complete"
+          : conversationPhase === "discovery" || conversationPhase === "amounts"
             ? "upcoming"
-            : conversationPhase === "amounts"
-              ? "current"
-              : "complete",
-      },
-      {
-        id: "schedule",
-        label: "Fechas",
-        status:
-          conversationPhase === "schedule"
-            ? "current"
-            : conversationPhase === "confirmation"
-              ? "complete"
-              : conversationPhase === "discovery" || conversationPhase === "amounts"
-                ? "upcoming"
-                : "complete",
-      },
-      {
-        id: "confirmation",
-        label: "Confirmación",
-        status: conversationPhase === "confirmation" ? "current" : "upcoming",
-      },
-    ] as const;
+            : "complete";
+    const confirmationStatus: StepStatus = conversationPhase === "confirmation" ? "current" : "upcoming";
 
-    return steps.map((step) => ({ ...step }));
+    return [
+      { id: "discovery", label: "Fuentes", status: discoveryStatus },
+      { id: "amounts", label: "Montos", status: amountsStatus },
+      { id: "schedule", label: "Fechas", status: scheduleStatus },
+      { id: "confirmation", label: "Confirmación", status: confirmationStatus },
+    ];
   }, [conversationPhase]);
 
   const renderMessage = (message: ChatMessage) => {
@@ -476,19 +470,21 @@ export default function AdvancedIncomeSetupScreen() {
     let currentIncomes = incomes;
 
     if (currentIncomes.length === 0 && detectedIncomes.length > 0) {
-      detectedIncomes.forEach((income, index) => {
-        if (!Number.isFinite(income.amount) || !income.amount) {
+      let markPrimary = true;
+
+      detectedIncomes.forEach((income) => {
+        const resolvedAmount = resolveIncomeAmount(income);
+        if (!Number.isFinite(resolvedAmount) || !resolvedAmount) {
           return;
         }
 
         addIncome({
-          id: `income-${Date.now()}-${index}`,
           name: income.name || "Ingreso",
           type: income.type,
-          amount: income.amount,
-          frequency: income.frequency as IncomeSource["frequency"],
+          amount: resolvedAmount,
+          frequency: (income.frequency || "monthly") as IncomeSource["frequency"],
           isActive: true,
-          isPrimary: index === 0,
+          isPrimary: markPrimary,
           isVariable: income.isVariable ?? false,
           country: profile?.country || "GT",
           minAmount: income.minAmount,
@@ -505,8 +501,12 @@ export default function AdvancedIncomeSetupScreen() {
           payDate:
             income.paymentDates && income.paymentDates.length === 1 ? income.paymentDates[0] : undefined,
           stabilityPattern: income.isVariable ? "variable" : "consistent",
-          baseAmount: income.isVariable ? income.minAmount ?? income.amount : income.amount,
+          baseAmount: income.isVariable
+            ? income.minAmount ?? resolvedAmount
+            : resolvedAmount,
         });
+
+        markPrimary = false;
       });
 
       currentIncomes = useUserStore.getState().incomes;
@@ -591,8 +591,14 @@ export default function AdvancedIncomeSetupScreen() {
                   <Text className="text-blue-800 font-medium text-sm mr-2">Bussy está analizando</Text>
                   <View className="flex-row space-x-1">
                     <View className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                    <View className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-                    <View className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+                    <View
+                      className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"
+                      style={{ animationDelay: "0.2s" } as any}
+                    />
+                    <View
+                      className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"
+                      style={{ animationDelay: "0.4s" } as any}
+                    />
                   </View>
                 </View>
               </View>
