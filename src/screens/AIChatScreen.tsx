@@ -334,47 +334,48 @@ export default function AIChatScreen() {
       <View className="flex-1">
         <ScrollView
           ref={scrollViewRef}
-          className="flex-1 px-4"
+          className="flex-1 px-3"
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
         >
-          <View className="py-4 space-y-4">
+          <View className="space-y-2">
             {messages.map((message) => (
-              <View
-                key={message.id}
-                className={`flex-row ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+              <View key={message.id} className="mb-1">
                 <View
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    message.role === "user"
-                      ? "bg-blue-500 rounded-br-md"
-                      : "bg-white border border-gray-200 rounded-bl-md"
+                  className={`flex-row ${
+                    message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <Text
-                    className={`text-sm leading-5 ${
-                      message.role === "user" ? "text-white" : "text-gray-800"
+                  <View
+                    className={`max-w-[85%] rounded-2xl px-3 py-2 ${
+                      message.role === "user"
+                        ? "bg-blue-500 rounded-br-md"
+                        : "bg-white border border-gray-200 rounded-bl-md shadow-sm"
                     }`}
                   >
-                    {message.content}
-                  </Text>
-                  <Text
-                    className={`text-xs mt-1 ${
-                      message.role === "user" ? "text-blue-100" : "text-gray-500"
-                    }`}
-                  >
-                    {formatTime(message.timestamp)}
-                  </Text>
+                    <Text
+                      className={`text-sm leading-snug ${
+                        message.role === "user" ? "text-white" : "text-gray-800"
+                      }`}
+                    >
+                      {message.content}
+                    </Text>
+                    <Text
+                      className={`text-xs mt-1 ${
+                        message.role === "user" ? "text-blue-100" : "text-gray-400"
+                      }`}
+                    >
+                      {formatTime(message.timestamp)}
+                    </Text>
+                  </View>
                 </View>
               </View>
             ))}
             {isLoading && (
-              <View className="flex-row justify-start">
-                <View className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3">
+              <View className="flex-row justify-start mb-1">
+                <View className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-3 py-2 shadow-sm">
                   <View className="flex-row items-center">
                     <ActivityIndicator size="small" color="#3b82f6" />
                     <Text className="ml-2 text-gray-500 text-sm">Escribiendo...</Text>

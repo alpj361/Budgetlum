@@ -415,13 +415,13 @@ Si no hay información específica sobre presupuesto, responde: {"extracted": []
     return (
       <View
         key={message.id}
-        className={`mb-4 ${isBussy ? "items-start" : "items-end"}`}
+        className={`mb-1 ${isBussy ? "items-start" : "items-end"}`}
       >
         <View
-          className={`max-w-[85%] rounded-xl px-4 py-3 ${
+          className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
             isBussy
-              ? "bg-blue-100 border border-blue-200"
-              : "bg-green-100 border border-green-200"
+              ? "bg-blue-100 border border-blue-200 rounded-bl-md"
+              : "bg-green-100 border border-green-200 rounded-br-md"
           }`}
         >
           {isBussy && (
@@ -434,7 +434,7 @@ Si no hay información específica sobre presupuesto, responde: {"extracted": []
           )}
 
           <Text
-            className={`text-sm leading-5 ${
+            className={`text-sm leading-snug ${
               isBussy ? "text-blue-900" : "text-green-900"
             }`}
           >
@@ -461,17 +461,17 @@ Si no hay información específica sobre presupuesto, responde: {"extracted": []
         {/* Chat Messages */}
         <ScrollView
           ref={scrollViewRef}
-          className="flex-1 mb-4"
+          className="flex-1 mb-3 px-3"
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
         >
           {messages.map(renderMessage)}
 
           {isProcessing && (
-            <View className="items-start mb-4">
-              <View className="bg-blue-100 border border-blue-200 rounded-xl px-4 py-3">
+            <View className="items-start mb-1">
+              <View className="bg-blue-100 border border-blue-200 rounded-2xl rounded-bl-md px-3 py-2 shadow-sm">
                 <View className="flex-row items-center">
                   <View className="w-6 h-6 bg-blue-600 rounded-full items-center justify-center mr-2">
                     <Text className="text-white text-xs font-bold">B</Text>
