@@ -17,7 +17,15 @@ export const ChatQuickActions: React.FC<Props> = ({ actions, onSelect, disabled 
   if (actions.length === 0) return null;
 
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginTop: 4,
+        marginBottom: 8,
+      }}
+    >
       {actions.map((action) => (
         <Pressable
           key={action.id}

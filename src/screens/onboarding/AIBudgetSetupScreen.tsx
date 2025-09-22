@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { View, Text, ScrollView, TextInput, Platform, Keyboard } from "react-native";
+import { View, Text, ScrollView, TextInput, Platform, Keyboard, Animated, Easing } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import OnboardingContainer from "../../components/onboarding/OnboardingContainer";
 import AnimatedPressable from "../../components/AnimatedPressable";
@@ -174,6 +174,7 @@ export default function AIBudgetSetupScreen() {
   const currencySymbol = getCurrencySymbol(profile?.country || "GT");
   const { bottom: safeAreaBottom } = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const composerTranslate = useRef(new Animated.Value(0)).current;
   const [composerHeight, setComposerHeight] = useState(0);
   const keyboardOffset = Math.max(0, keyboardHeight - safeAreaBottom);
 
@@ -285,24 +286,46 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
     return () => resetConversation();
   }, [initializeBudgetConversation, resetConversation]);
 
+  const animateComposer = useCallback(
+    (offset: number, duration = 220) => {
+      Animated.timing(composerTranslate, {
+        toValue: -offset,
+        duration,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    },
+    [composerTranslate]
+  );
+
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
     const showSub = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates.height);
-      scrollToBottom();
+      const height = event.endCoordinates.height;
+      setKeyboardHeight(height);
+      const offset = Math.max(0, height - safeAreaBottom);
+      animateComposer(offset, event.duration ?? 240);
+      setTimeout(() => scrollToBottom(), 60);
     });
 
-    const hideSub = Keyboard.addListener(hideEvent, () => {
+    const hideSub = Keyboard.addListener(hideEvent, (event) => {
       setKeyboardHeight(0);
+      animateComposer(0, event?.duration ?? 200);
     });
 
     return () => {
       showSub.remove();
       hideSub.remove();
     };
-  }, [scrollToBottom]);
+  }, [animateComposer, safeAreaBottom, scrollToBottom]);
+
+  useEffect(() => {
+    if (keyboardOffset >= 0) {
+      scrollToBottom();
+    }
+  }, [keyboardOffset, scrollToBottom]);
 
   useEffect(() => {
     if (composerHeight > 0) {
@@ -597,7 +620,11 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
+          contentContainerStyle={{
+            paddingTop: 8,
+            paddingBottom: composerHeight + keyboardOffset + 32,
+          }}
+          onContentSizeChange={() => scrollToBottom()}
         >
           {introMessage && (
             <View className="mb-3 items-start">
@@ -682,7 +709,7 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
           )}
         </ScrollView>
 
-        <View
+        <Animated.View
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout;
             setComposerHeight((prev) => (Math.abs(prev - height) > 1 ? height : prev));
@@ -691,7 +718,8 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
             position: "absolute",
             left: 0,
             right: 0,
-            bottom: keyboardOffset,
+            bottom: 0,
+            transform: [{ translateY: composerTranslate }],
             paddingHorizontal: 16,
             paddingTop: 8,
             paddingBottom: safeAreaBottom || 12,
@@ -717,7 +745,7 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
             style={{
               flexDirection: "row",
               alignItems: "flex-end",
-              marginTop: 10,
+              marginTop: 6,
               backgroundColor: "white",
               borderRadius: 16,
               paddingHorizontal: 16,
@@ -772,7 +800,7 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
               <Text className="text-white font-semibold text-lg">Finalizar presupuesto</Text>
             </AnimatedPressable>
           )}
-        </View>
+        </Animated.View>
       </View>
     </OnboardingContainer>
   );
