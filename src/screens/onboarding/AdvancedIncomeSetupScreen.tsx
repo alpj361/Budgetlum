@@ -271,6 +271,8 @@ export default function AdvancedIncomeSetupScreen() {
   const baseCurrencySymbol = initialCurrencyRef.current || currencySymbol || "";
   const { bottom: safeAreaBottom } = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [composerHeight, setComposerHeight] = useState(0);
+  const keyboardOffset = Math.max(0, keyboardHeight - safeAreaBottom);
 
   const quickActions = useMemo<QuickAction[]>(() => {
     return QUICK_ACTION_BLUEPRINTS.map(({ id, label, buildPayload }) => ({
@@ -285,6 +287,31 @@ export default function AdvancedIncomeSetupScreen() {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 120);
   }, []);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      scrollToBottom();
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [scrollToBottom]);
+
+  useEffect(() => {
+    if (composerHeight > 0) {
+      scrollToBottom();
+    }
+  }, [composerHeight, scrollToBottom]);
 
   useEffect(() => {
     const initialIncomes = initialIncomesRef.current || [];
@@ -640,7 +667,11 @@ export default function AdvancedIncomeSetupScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 160 + Math.max(0, keyboardHeight - safeAreaBottom) }}
+          contentContainerStyle={{
+            paddingTop: 8,
+            paddingBottom: composerHeight + keyboardOffset + 32,
+          }}
+          onContentSizeChange={() => scrollToBottom()}
         >
           {introMessage && (
             <View className="mb-3 items-start">
@@ -752,19 +783,41 @@ export default function AdvancedIncomeSetupScreen() {
         </ScrollView>
 
         <View
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            setComposerHeight((prev) => (Math.abs(prev - height) > 1 ? height : prev));
+          }}
           style={{
-            paddingHorizontal: 18,
-            paddingBottom: safeAreaBottom + Math.max(0, keyboardHeight - safeAreaBottom),
-            backgroundColor: "#F9FAFB",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: keyboardOffset,
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: safeAreaBottom || 12,
+            backgroundColor: "rgba(249, 250, 251, 0.96)",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderColor: "#E5E7EB",
+            shadowColor: "#000",
+            shadowOpacity: 0.08,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: -4 },
+            elevation: 6,
           }}
         >
-          <ChatQuickActions actions={quickActions} onSelect={handleQuickAction} disabled={isTyping} />
+          <ChatQuickActions
+            actions={quickActions}
+            onSelect={handleQuickAction}
+            disabled={isTyping}
+          />
 
           <View
             style={{
               flexDirection: "row",
               alignItems: "flex-end",
-              marginTop: 12,
+              marginTop: 10,
               backgroundColor: "white",
               borderRadius: 16,
               paddingHorizontal: 16,

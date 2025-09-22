@@ -174,6 +174,8 @@ export default function AIBudgetSetupScreen() {
   const currencySymbol = getCurrencySymbol(profile?.country || "GT");
   const { bottom: safeAreaBottom } = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [composerHeight, setComposerHeight] = useState(0);
+  const keyboardOffset = Math.max(0, keyboardHeight - safeAreaBottom);
 
   const quickActions = useMemo<QuickAction[]>(
     () =>
@@ -301,6 +303,12 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
       hideSub.remove();
     };
   }, [scrollToBottom]);
+
+  useEffect(() => {
+    if (composerHeight > 0) {
+      scrollToBottom();
+    }
+  }, [composerHeight, scrollToBottom]);
 
   useEffect(() => {
     scrollToBottom();
@@ -675,19 +683,41 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
         </ScrollView>
 
         <View
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            setComposerHeight((prev) => (Math.abs(prev - height) > 1 ? height : prev));
+          }}
           style={{
-            paddingHorizontal: 18,
-            paddingBottom: safeAreaBottom + Math.max(0, keyboardHeight - safeAreaBottom),
-            backgroundColor: "#F9FAFB",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: keyboardOffset,
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: safeAreaBottom || 12,
+            backgroundColor: "rgba(249, 250, 251, 0.96)",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderColor: "#E5E7EB",
+            shadowColor: "#000",
+            shadowOpacity: 0.08,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: -4 },
+            elevation: 6,
           }}
         >
-          <ChatQuickActions actions={quickActions} onSelect={handleQuickAction} disabled={isProcessing} />
+          <ChatQuickActions
+            actions={quickActions}
+            onSelect={handleQuickAction}
+            disabled={isProcessing}
+          />
 
           <View
             style={{
               flexDirection: "row",
               alignItems: "flex-end",
-              marginTop: 12,
+              marginTop: 10,
               backgroundColor: "white",
               borderRadius: 16,
               paddingHorizontal: 16,
