@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { View, Text, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
+import { View, Text, ScrollView, TextInput, Platform, Keyboard } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import OnboardingContainer from "../../components/onboarding/OnboardingContainer";
 import AnimatedPressable from "../../components/AnimatedPressable";
@@ -14,6 +14,7 @@ import { ValidationSummaryCard } from "../../components/onboarding/ValidationSum
 import { ChatProgressIndicator } from "../../components/onboarding/ChatProgressIndicator";
 import { ParsedIncome } from "../../utils/incomeParser";
 import { IncomeSource, UserProfile } from "../../types/user";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const INTRO_MESSAGE = `¡Hola! 👋 Soy Bussy, tu asistente financiero personal.
 
@@ -267,7 +268,9 @@ export default function AdvancedIncomeSetupScreen() {
   const resetConversationRef = useRef(resetConversation);
   resetConversationRef.current = resetConversation;
 
-  const baseCurrencySymbol = initialCurrencyRef.current || currencySymbol || "$";
+  const baseCurrencySymbol = initialCurrencyRef.current || currencySymbol || "";
+  const { bottom: safeAreaBottom } = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const quickActions = useMemo<QuickAction[]>(() => {
     return QUICK_ACTION_BLUEPRINTS.map(({ id, label, buildPayload }) => ({

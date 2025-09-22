@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { View, Text, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
+import { View, Text, ScrollView, TextInput, Platform, Keyboard } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import OnboardingContainer from "../../components/onboarding/OnboardingContainer";
 import AnimatedPressable from "../../components/AnimatedPressable";
@@ -15,6 +15,7 @@ import { ValidationSummaryCard } from "../../components/onboarding/ValidationSum
 import { ChatProgressIndicator } from "../../components/onboarding/ChatProgressIndicator";
 import { ParsedIncome } from "../../utils/incomeParser";
 import { FinancialGoal } from "../../types/user";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type AIBudgetSetupNavigationProp = NativeStackNavigationProp<OnboardingStackParamList, "AIBudgetSetup">;
 
@@ -171,6 +172,8 @@ export default function AIBudgetSetupScreen() {
   const [detectedGoals, setDetectedGoals] = useState<Partial<FinancialGoal>[]>([]);
 
   const currencySymbol = getCurrencySymbol(profile?.country || "GT");
+  const { bottom: safeAreaBottom } = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const quickActions = useMemo<QuickAction[]>(
     () =>
@@ -279,6 +282,25 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
     initializeBudgetConversation();
     return () => resetConversation();
   }, [initializeBudgetConversation, resetConversation]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      scrollToBottom();
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [scrollToBottom]);
 
   useEffect(() => {
     scrollToBottom();
