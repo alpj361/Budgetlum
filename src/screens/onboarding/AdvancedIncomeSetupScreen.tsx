@@ -637,7 +637,7 @@ export default function AdvancedIncomeSetupScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 160 + Math.max(0, keyboardHeight - safeAreaBottom) }}
         >
           {introMessage && (
             <View className="mb-3 items-start">
@@ -748,16 +748,42 @@ export default function AdvancedIncomeSetupScreen() {
           )}
         </ScrollView>
 
-        <ChatQuickActions actions={quickActions} onSelect={handleQuickAction} disabled={isTyping} />
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+        <View
+          style={{
+            paddingHorizontal: 18,
+            paddingBottom: safeAreaBottom + Math.max(0, keyboardHeight - safeAreaBottom),
+            backgroundColor: "#F9FAFB",
+          }}
         >
-          <View className="flex-row items-end space-x-3 p-4 bg-gray-50 rounded-xl mt-3">
+          <ChatQuickActions actions={quickActions} onSelect={handleQuickAction} disabled={isTyping} />
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              marginTop: 12,
+              backgroundColor: "white",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              shadowColor: "#000000",
+              shadowOpacity: 0.04,
+              shadowRadius: 4,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          >
             <TextInput
               ref={inputRef}
-              className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 max-h-24"
+              style={{
+                flex: 1,
+                minHeight: 40,
+                maxHeight: 120,
+                color: "#111827",
+                fontSize: 16,
+              }}
               placeholder="Cuéntame sobre tus ingresos..."
               placeholderTextColor="#9CA3AF"
               value={currentInput}
@@ -772,24 +798,25 @@ export default function AdvancedIncomeSetupScreen() {
             <AnimatedPressable
               onPress={handleSendMessage}
               disabled={!currentInput.trim() || isTyping}
-              className={`p-3 rounded-xl ${currentInput.trim() && !isTyping ? "bg-blue-600" : "bg-gray-300"}`}
+              className={`p-3 rounded-full ${currentInput.trim() && !isTyping ? "bg-blue-600" : "bg-gray-300"}`}
             >
               <Ionicons
                 name="send"
-                size={20}
+                size={18}
                 color={currentInput.trim() && !isTyping ? "white" : "#9CA3AF"}
               />
             </AnimatedPressable>
           </View>
-        </KeyboardAvoidingView>
 
-        {canFinish && (
-          <View className="mt-4">
-            <AnimatedPressable onPress={handleFinishSetup} className="bg-green-600 rounded-xl py-4 items-center">
+          {canFinish && (
+            <AnimatedPressable
+              onPress={handleFinishSetup}
+              className="bg-green-600 rounded-xl py-4 items-center mt-4"
+            >
               <Text className="text-white font-semibold text-lg">Finalizar configuración</Text>
             </AnimatedPressable>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     </OnboardingContainer>
   );
@@ -909,37 +936,4 @@ function adjustForWeekend(date: Date) {
   }
 
   return { adjustedDate: result, adjusted };
-}
-
-function inferPaymentDatesFromDescription(description?: string | null) {
-  if (!description) return undefined;
-
-  const text = description.toLowerCase();
-  const matches = new Set<number>();
-
-  const explicitNumbers = text.match(/\b([1-3]?\d)\b/g);
-  if (explicitNumbers) {
-    explicitNumbers.forEach((match) => {
-      const parsed = parseInt(match, 10);
-      if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= 31) {
-        matches.add(parsed);
-      }
-    });
-  }
-
-  if (text.includes("fin de mes") || text.includes("fin del mes") || text.includes("último día")) {
-    matches.add(31);
-  }
-  if (text.includes("inicio de mes") || text.includes("principio de mes") || text.includes("primer día")) {
-    matches.add(1);
-  }
-  if (text.includes("quincena") || text.includes("medio mes")) {
-    matches.add(15);
-  }
-
-  if (matches.size === 0) {
-    return undefined;
-  }
-
-  return Array.from(matches).sort((a, b) => a - b);
 }

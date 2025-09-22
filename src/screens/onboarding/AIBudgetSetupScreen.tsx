@@ -652,16 +652,42 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
           )}
         </ScrollView>
 
-        <ChatQuickActions actions={quickActions} onSelect={handleQuickAction} disabled={isTyping} />
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+        <View
+          style={{
+            paddingHorizontal: 18,
+            paddingBottom: safeAreaBottom + Math.max(0, keyboardHeight - safeAreaBottom),
+            backgroundColor: "#F9FAFB",
+          }}
         >
-          <View className="flex-row items-end space-x-3 p-4 bg-gray-50 rounded-xl mt-3">
+          <ChatQuickActions actions={quickActions} onSelect={handleQuickAction} disabled={isProcessing} />
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              marginTop: 12,
+              backgroundColor: "white",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              shadowColor: "#000000",
+              shadowOpacity: 0.04,
+              shadowRadius: 4,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          >
             <TextInput
               ref={inputRef}
-              className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 max-h-24"
+              style={{
+                flex: 1,
+                minHeight: 40,
+                maxHeight: 120,
+                color: "#111827",
+                fontSize: 16,
+              }}
               placeholder="Cuéntame sobre tus gastos..."
               placeholderTextColor="#9CA3AF"
               value={currentInput}
@@ -669,31 +695,32 @@ No te preocupes si nunca has hecho un presupuesto antes - yo te voy a guiar paso
               multiline
               textAlignVertical="top"
               onSubmitEditing={handleSendMessage}
-              editable={!isTyping}
+              editable={!isProcessing}
               onFocus={scrollToBottom}
             />
 
             <AnimatedPressable
               onPress={handleSendMessage}
-              disabled={!currentInput.trim() || isTyping}
-              className={`p-3 rounded-xl ${currentInput.trim() && !isTyping ? "bg-blue-600" : "bg-gray-300"}`}
+              disabled={!currentInput.trim() || isProcessing}
+              className={`p-3 rounded-full ${currentInput.trim() && !isProcessing ? "bg-blue-600" : "bg-gray-300"}`}
             >
               <Ionicons
                 name="send"
-                size={20}
-                color={currentInput.trim() && !isTyping ? "white" : "#9CA3AF"}
+                size={18}
+                color={currentInput.trim() && !isProcessing ? "white" : "#9CA3AF"}
               />
             </AnimatedPressable>
           </View>
-        </KeyboardAvoidingView>
 
-        {canFinish && (
-          <View className="mt-4">
-            <AnimatedPressable onPress={handleFinishBudgetSetup} className="bg-green-600 rounded-xl py-4 items-center">
+          {canFinish && (
+            <AnimatedPressable
+              onPress={handleFinishBudgetSetup}
+              className="bg-green-600 rounded-xl py-4 items-center mt-4"
+            >
               <Text className="text-white font-semibold text-lg">Finalizar presupuesto</Text>
             </AnimatedPressable>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     </OnboardingContainer>
   );
