@@ -23,7 +23,7 @@ export const ChatQuickActions: React.FC<Props> = ({ actions, onSelect, disabled 
         flexWrap: "wrap",
         gap: 8,
         marginTop: 4,
-        marginBottom: 8,
+        marginBottom: 4,
       }}
     >
       {actions.map((action) => (
