@@ -1,5 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { View, Text, ScrollView, TextInput, Platform, Keyboard, Animated, Easing } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  Platform,
+  Keyboard,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import OnboardingContainer from "../../components/onboarding/OnboardingContainer";
 import AnimatedPressable from "../../components/AnimatedPressable";
@@ -269,11 +279,15 @@ export default function AdvancedIncomeSetupScreen() {
   resetConversationRef.current = resetConversation;
 
   const baseCurrencySymbol = initialCurrencyRef.current || currencySymbol || "";
-  const { bottom: safeAreaBottom } = useSafeAreaInsets();
+  const { top: safeAreaTop, bottom: safeAreaBottom } = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const composerTranslate = useRef(new Animated.Value(0)).current;
   const [composerHeight, setComposerHeight] = useState(0);
   const keyboardOffset = Math.max(0, keyboardHeight - safeAreaBottom);
+  const keyboardVerticalOffset = useMemo(
+    () => (Platform.OS === "ios" ? safeAreaTop + 64 : 0),
+    [safeAreaTop]
+  );
 
   const quickActions = useMemo<QuickAction[]>(() => {
     return QUICK_ACTION_BLUEPRINTS.map(({ id, label, buildPayload }) => ({
@@ -681,12 +695,17 @@ export default function AdvancedIncomeSetupScreen() {
       showSkip={true}
       onSkip={handleSkip}
     >
-      <View className="flex-1">
-        <ChatProgressIndicator steps={conversationSteps} />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={keyboardVerticalOffset}
+      >
+        <View className="flex-1">
+          <ChatProgressIndicator steps={conversationSteps} />
 
-        <ScrollView
-          ref={scrollViewRef}
-          className="flex-1 mb-3 px-3"
+          <ScrollView
+            ref={scrollViewRef}
+            className="flex-1 mb-3 px-3"
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
@@ -897,7 +916,8 @@ export default function AdvancedIncomeSetupScreen() {
             </AnimatedPressable>
           )}
         </Animated.View>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </OnboardingContainer>
   );
 }
