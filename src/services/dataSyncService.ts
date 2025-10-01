@@ -57,13 +57,22 @@ export class DataSyncService {
       const maxAmount = Number.isFinite(income.maxAmount) ? income.maxAmount : undefined;
 
       const frequency = FREQUENCY_MAP[income.frequency] || "monthly";
-      const normalizedName = income.type ? income.type.charAt(0).toUpperCase() + income.type.slice(1) : "Ingreso";
+      
+      // Generate intelligent income name
+      const normalizedName = income.name || 
+        (income.company ? `Trabajo en ${income.company}` : 
+         income.type ? income.type.charAt(0).toUpperCase() + income.type.slice(1) : 
+         "Ingreso");
       
       const existing = store.incomes.find((source) => {
         const sameFrequency = source.frequency === frequency;
         const sameType = source.type === income.type;
         const closeAmount = Math.abs((source.amount || 0) - resolvedAmount) <= Math.max(50, resolvedAmount * 0.05);
-        return sameFrequency && sameType && closeAmount;
+        // Also check company name for better matching
+        const sameCompany = income.company ? 
+          source.description?.toLowerCase().includes(income.company.toLowerCase()) : 
+          true;
+        return sameFrequency && sameType && closeAmount && sameCompany;
       });
 
       const baseAmount = income.isVariable
@@ -91,20 +100,28 @@ export class DataSyncService {
         });
         incomesUpdated += 1;
       } else {
+        // Build description with company info if available
+        let fullDescription = income.description || "";
+        if (income.company && !fullDescription.toLowerCase().includes(income.company.toLowerCase())) {
+          fullDescription = fullDescription ? 
+            `${income.company} - ${fullDescription}` : 
+            income.company;
+        }
+        
         store.addIncome({
-          name: income.type ? `${normalizedName}` : "Ingreso",
+          name: normalizedName,
           type: income.type,
           amount: resolvedAmount,
           frequency,
           isActive: true,
           isPrimary: store.incomes.length === 0,
-          description: income.description,
+          description: fullDescription || undefined,
           paymentPattern: income.paymentDates && income.paymentDates.length > 1 ? "complex" : "simple",
           paymentSchedule: income.paymentDates && income.paymentDates.length > 1
             ? {
                 type: "fixed-dates",
                 dates: income.paymentDates,
-                description: income.description || "Generado automáticamente por Bussy",
+                description: fullDescription || "Generado automáticamente por Bussy",
               }
             : undefined,
           payDate: income.paymentDates && income.paymentDates.length === 1 ? income.paymentDates[0] : undefined,

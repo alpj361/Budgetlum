@@ -355,22 +355,32 @@ export class BussyAIService {
    - Si está entusiasmado → Comparte su energía positiva
    - Si está confundido → Tranquiliza y guía pacientemente
 
-3. **EXTRACCIÓN DE INFORMACIÓN**:
-   - Detecta montos: "Q5000", "entre 3000-8000", "$2500"
-   - Reconoce fechas: "pago el 15 y 30", "cada viernes", "fin de mes"
+3. **EXTRACCIÓN DE INFORMACIÓN CON INTELIGENCIA**:
+   - Detecta montos: "Q5000", "entre 3000-8000", "$2500", "como 5k", "unos 5000"
+   - Reconoce fechas: "pago el 15 y 30", "cada viernes", "fin de mes", "quincenal", "cada mes"
    - Identifica tipos: trabajo, freelance, negocio, remesas, aguinaldo
-   - Nota patrones de variabilidad: "a veces más", "depende"
+   - Nota patrones de variabilidad: "a veces más", "depende", "varía"
+   - IMPORTANTE: Si el usuario menciona trabajo sin montos/fechas (ej: "Trabajo en Google"), extrae lo que puedas y aplica defaults inteligentes:
+     * Sin monto → pregunta específicamente el monto
+     * Sin fechas → asume defaults (quincenal=[15,30], mensual=[1])
+     * Sin frecuencia → asume mensual para trabajos
 
-4. **PREGUNTAS ESTRATÉGICAS** (úsalas según la situación):
-   🎯 "¿Cuál es tu mayor desafío con el dinero?"
-   📊 "¿Tus ingresos cambian mes a mes?"
-   💡 "¿Qué harías con dinero extra?"
-   👥 "¿Apoyas financieramente a familia?"
-   ⚠️ "¿Cuándo gastas más de lo planeado?"
+4. **MANEJO DE INFORMACIÓN PARCIAL**:
+   - "Trabajo en X" → Extrae: company="X", type="salary", frequency="monthly" (default), pregunta: monto
+   - "Gano 5000" → Extrae: amount=5000, frequency="monthly" (default), pregunta: fechas de pago
+   - "Quincenal" → Extrae: frequency="bi-weekly", paymentDates=[15,30] (default), pregunta: monto
+   - NUNCA falles por falta de datos - siempre extrae lo disponible y completa con defaults razonables
 
-5. **ESTILO DE RESPUESTA**:
-   - Inicia reconociendo algo específico de lo que dijeron
-   - Haz 1-2 preguntas relevantes (no abrumes)
+5. **PREGUNTAS ESTRATÉGICAS** (úsalas según la situación):
+   🎯 "¿Cuánto recibes aproximadamente?" (si falta monto)
+   📅 "¿Qué días del mes te pagan?" (si falta fechas pero hay frecuencia)
+   💼 "¿Este ingreso es fijo o varía?" (para determinar variabilidad)
+   💰 "¿Tienes otras fuentes de ingresos?" (después de confirmar una)
+   
+6. **ESTILO DE RESPUESTA**:
+   - Inicia reconociendo LO QUE SÍ entendiste (aunque sea parcial)
+   - Confirma datos extraídos con defaults aplicados
+   - Haz SOLO 1 pregunta específica sobre lo que falta
    - Usa el nombre si lo han mencionado
    - Incluye contexto cultural cuando sea relevante
    - Termina con algo alentador o motivacional
@@ -442,7 +452,7 @@ Responde de manera conversacional, cálida y adaptada al estilo del usuario. ¡S
   }
 
   /**
-   * Parse income data using GPT-4o AI
+   * Parse income data using GPT-4o AI with smart defaults
    */
   static async parseIncomeDataWithAI(
     userMessage: string,
@@ -450,12 +460,29 @@ Responde de manera conversacional, cálida y adaptada al estilo del usuario. ¡S
   ): Promise<IntelligentIncomeData[]> {
     const currencySymbol = getCurrencySymbol(context.userCountry);
 
-    const extractionPrompt = `Extrae información de ingresos del siguiente mensaje del usuario. Devuelve solo un JSON válido con el siguiente formato:
+    const extractionPrompt = `Extrae información de ingresos del siguiente mensaje del usuario. SIEMPRE extrae algo, incluso si la información está incompleta.
 
+REGLAS CRÍTICAS:
+1. Si mencionan trabajo/empleo sin monto: extrae tipo "salary", frecuencia "monthly", company si mencionan nombre
+2. Si mencionan monto sin fechas: aplica defaults según frecuencia (quincenal=[15,30], mensual=[1])
+3. Si mencionan frecuencia sin monto: extrae frecuencia y payDates defaults
+4. Acepta montos aproximados: "como 5000", "unos 5k", "entre 500-800"
+5. Extrae nombres de empresas de: "Trabajo en X", "Empleado en X", "en la empresa X"
+6. NUNCA devuelvas array vacío - siempre extrae al menos un objeto con lo que puedas
+
+DEFAULTS INTELIGENTES:
+- Sin payDates + frequency "bi-weekly" → payDates: [15, 30]
+- Sin payDates + frequency "monthly" → payDates: [1]
+- Sin payDates + frequency "weekly" → payDates: [5]
+- Sin frequency + amount mencionado → frequency: "monthly"
+- Sin amount → amount: null (pero extrae todo lo demás)
+- "Trabajo en X" → type: "salary", frequency: "monthly", company: "X"
+
+Formato JSON:
 {
   "sources": [
     {
-      "name": "nombre descriptivo",
+      "name": "nombre descriptivo o null",
       "type": "salary|freelance|business|rental|remittance|other",
       "amount": número o null,
       "minAmount": número o null,
@@ -473,7 +500,7 @@ Mensaje del usuario: "${userMessage}"
 País: ${context.userCountry}
 Moneda: ${currencySymbol}
 
-IMPORTANTE: Responde SOLO con el JSON, sin texto adicional.`;
+IMPORTANTE: Responde SOLO con el JSON. Extrae lo que puedas y aplica defaults.`;
 
     let response: any = null;
 
@@ -506,14 +533,105 @@ IMPORTANTE: Responde SOLO con el JSON, sin texto adicional.`;
       console.log('AI Response for income parsing:', jsonContent);
 
       const parsed = JSON.parse(jsonContent);
-      return parsed.sources || [];
+      
+      // Apply intelligent defaults to parsed sources
+      const sources = (parsed.sources || []).map((source: any) => {
+        // Apply default payment dates if missing
+        if (!source.payDates && source.frequency) {
+          const freq = source.frequency.toLowerCase();
+          if (freq === 'bi-weekly' || freq === 'quincenal') {
+            source.payDates = [15, 30];
+          } else if (freq === 'monthly' || freq === 'mensual') {
+            source.payDates = [1];
+          } else if (freq === 'weekly' || freq === 'semanal') {
+            source.payDates = [5];
+          }
+        }
+        
+        // Generate name if missing
+        if (!source.name) {
+          if (source.company) {
+            source.name = `Trabajo en ${source.company}`;
+          } else if (source.type === 'salary') {
+            source.name = 'Salario';
+          } else if (source.type === 'freelance') {
+            source.name = 'Trabajo Freelance';
+          } else {
+            source.name = 'Ingreso';
+          }
+        }
+        
+        return source;
+      });
+      
+      return sources;
     } catch (error) {
       console.error('Error parsing income with AI:', error);
       if (response) {
         console.error('Raw AI response:', response.content);
       }
-      return []; // Return empty array on error
+      
+      // Fallback: Try to extract basic info with regex as last resort
+      const fallbackIncome = this.extractIncomeWithRegex(userMessage, context);
+      return fallbackIncome ? [fallbackIncome] : [];
     }
+  }
+
+  /**
+   * Fallback regex-based extraction when AI fails
+   */
+  private static extractIncomeWithRegex(
+    text: string,
+    context: ConversationContext
+  ): IntelligentIncomeData | null {
+    const lowerText = text.toLowerCase();
+    
+    // Try to extract amount
+    const amountMatch = text.match(/(?:Q|q|quetzal(?:es)?|\$|peso(?:s)?|d[oó]lar(?:es)?)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i) ||
+                       text.match(/(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:al mes|mensual|quincenal)/i);
+    
+    const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : null;
+    
+    // Try to detect frequency
+    let frequency: IntelligentIncomeData['frequency'] = 'monthly';
+    if (lowerText.includes('quincenal') || lowerText.includes('quincena')) {
+      frequency = 'bi-weekly';
+    } else if (lowerText.includes('semanal') || lowerText.includes('semana')) {
+      frequency = 'weekly';
+    }
+    
+    // Try to extract company
+    const companyMatch = text.match(/(?:trabajo|empleado|work)\s+(?:en|at)\s+([a-záéíóúñ\w\s]+?)(?:\.|,|$)/i);
+    const company = companyMatch ? companyMatch[1].trim() : undefined;
+    
+    // Determine type
+    let type: IntelligentIncomeData['type'] = 'other';
+    if (company || lowerText.includes('trabajo') || lowerText.includes('empleo')) {
+      type = 'salary';
+    } else if (lowerText.includes('freelance') || lowerText.includes('independiente')) {
+      type = 'freelance';
+    }
+    
+    // Apply default payment dates
+    const payDates = frequency === 'bi-weekly' ? [15, 30] : 
+                     frequency === 'monthly' ? [1] : 
+                     frequency === 'weekly' ? [5] : undefined;
+    
+    // Only return if we extracted at least something meaningful
+    if (amount || company || type !== 'other') {
+      return {
+        name: company ? `Trabajo en ${company}` : type === 'salary' ? 'Salario' : 'Ingreso',
+        type,
+        amount,
+        frequency,
+        payDates,
+        company,
+        currency: getCurrencySymbol(context.userCountry),
+        confidence: amount ? 0.6 : 0.3
+      };
+    }
+    
+    return null;
   }
 
   /**

@@ -8,6 +8,7 @@ export interface ParsedIncome {
   maxAmount?: number;
   paymentDates?: number[];
   description?: string;
+  company?: string; // Company or employer name
   confidence: number; // 0-1 score for parsing confidence
 }
 

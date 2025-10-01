@@ -30,6 +30,16 @@ export class SmartExtractionService {
   private static readonly EXTRACTION_PROMPT = `
 Extract detailed financial data from a conversational message and reply with a JSON object only.
 
+CRITICAL RULES - ALWAYS EXTRACT SOMETHING:
+1. NEVER fail or return empty data - extract whatever is available and apply smart defaults
+2. Handle incomplete information gracefully with intelligent defaults
+3. Missing dates? Apply defaults: quincenal=[15,30], mensual=[1], semanal=[5], diario=[1-31]
+4. Missing frequency? Default to "monthly" if amount is mentioned
+5. Missing amount? Set to null but continue extraction
+6. Work mentions like "Trabajo en X"? Extract company and apply salary defaults
+7. Vague amounts like "como 5000", "unos 5k", "between 500-800"? Parse them
+8. ALWAYS return valid JSON even with minimal data
+
 PRINCIPLES:
 - Always capture explicit amounts or ranges and convert them to a monthly baseline. If the user gives per-cycle numbers, keep the monthly total in "amount" and use payment dates to describe the cycle.
 - Recognise quincena/bi-weekly, irregular, seasonal, hourly, and commission-based statements. Flag "isVariable" when part of the income fluctuates, storing any conservative/base portion in "amount" and ranges in "minAmount"/"maxAmount".
@@ -37,6 +47,7 @@ PRINCIPLES:
 - Use "description" for contextual scheduling rules, hourly assumptions, or how extra bonuses work so the assistant can adapt later.
 - Identify expenses, financial goals, and preferences even when the user mixes topics or gives them out of order.
 - Return confidence scores (0-1) for every element and leave fields null when the information is unavailable.
+- Extract work context: "Trabajo en X" → company: "X", type: "salary", frequency: "monthly" (default)
 
 RETURN FORMAT:
 {
@@ -80,6 +91,11 @@ Examples:
 - "Recibo Q1,200 de comisiones (mínimo Q800)" → amount 800, minAmount 800, maxAmount 1200, isVariable true.
 - "Pago la renta el 1 y la tarjeta el 15" → preferences.paymentDates [1, 15].
 - "Me pagan por hora (Q25) y suelo trabajar 40 horas" → amount 25*160, isVariable true, description "basado en 40h".
+- "Trabajo en Google" → income type "salary", frequency "monthly", paymentDates [1], company "Google", amount null, confidence 0.4.
+- "Gano como 5000 al mes" → amount 5000, frequency "monthly", paymentDates [1], confidence 0.7.
+- "Entre 500-800 semanales de propinas" → minAmount 500, maxAmount 800, amount 650, frequency "weekly", isVariable true, type "other".
+- "Soy freelance de diseño" → type "freelance", frequency "project", amount null, description "diseño", confidence 0.3.
+- "Quincenal en la tienda" → frequency "bi-weekly", paymentDates [15, 30], type "salary", amount null, company "tienda".
 `;
 
   static async extractFromMessage(message: string, context: any = {}): Promise<ExtractedData> {
@@ -179,18 +195,33 @@ Return only valid JSON:`;
             ? fallbackAmountCandidate
             : undefined;
 
+        // Apply intelligent defaults for payment dates based on frequency
+        let paymentDates = Array.isArray(income.paymentDates)
+          ? income.paymentDates
+              .map(normalizePaymentDateValue)
+              .filter((value): value is number => typeof value === 'number')
+          : undefined;
+
+        // If no payment dates but we have frequency, apply smart defaults
+        if (!paymentDates || paymentDates.length === 0) {
+          paymentDates = inferPaymentDatesFromFrequency(frequency || income.frequency);
+        }
+
+        // Extract company name from description or context
+        const company = income.company || extractCompanyFromText(income.description || '');
+
+        // Generate smart name if missing
+        const name = income.name || generateIncomeName(type || income.type, company, income.description);
+
         return {
           ...income,
+          name,
           amount: normalizedAmount ?? income.amount,
           minAmount: Number.isFinite(minAmount) ? minAmount : income.minAmount,
           maxAmount: Number.isFinite(maxAmount) ? maxAmount : income.maxAmount,
-          frequency: (frequency as ParsedIncome['frequency']) || income.frequency,
+          frequency: (frequency as ParsedIncome['frequency']) || income.frequency || 'monthly', // Default to monthly
           type: type || income.type,
-          paymentDates: Array.isArray(income.paymentDates)
-            ? income.paymentDates
-                .map(normalizePaymentDateValue)
-                .filter((value): value is number => typeof value === 'number')
-            : undefined,
+          paymentDates,
           description: typeof income.description === 'string' ? income.description.trim() : income.description,
         } as ParsedIncome;
       });
@@ -353,6 +384,94 @@ const resolveAmountForValidation = (income: ParsedIncome): number | undefined =>
     return income.maxAmount;
   }
   return undefined;
+};
+
+/**
+ * Infer payment dates based on frequency pattern
+ */
+const inferPaymentDatesFromFrequency = (frequency?: string): number[] | undefined => {
+  if (!frequency) return undefined;
+
+  const freq = frequency.toLowerCase();
+  
+  // Default payment dates by frequency
+  const defaultDates: Record<string, number[]> = {
+    'bi-weekly': [15, 30],
+    'quincenal': [15, 30],
+    'monthly': [1],
+    'mensual': [1],
+    'weekly': [5], // Friday
+    'semanal': [5],
+    'daily': undefined as any, // No specific dates for daily
+    'diario': undefined as any,
+    'quarterly': [1],
+    'trimestral': [1],
+    'yearly': [1],
+    'anual': [1],
+  };
+
+  return defaultDates[freq];
+};
+
+/**
+ * Extract company name from text
+ */
+const extractCompanyFromText = (text: string): string | undefined => {
+  if (!text) return undefined;
+
+  const lowerText = text.toLowerCase();
+
+  // Patterns: "trabajo en X", "empleado en X", "work at X"
+  const patterns = [
+    /(?:trabajo|empleado|work|empleo)\s+(?:en|at)\s+([a-záéíóúñ\w\s]+?)(?:\.|,|$)/i,
+    /(?:empresa|company|tienda|negocio)\s+([a-záéíóúñ\w\s]+?)(?:\.|,|$)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+
+  return undefined;
+};
+
+/**
+ * Generate intelligent income name based on available data
+ */
+const generateIncomeName = (
+  type?: string, 
+  company?: string, 
+  description?: string
+): string => {
+  // Priority 1: Use company name
+  if (company) {
+    return `Trabajo en ${company}`;
+  }
+
+  // Priority 2: Use type
+  const typeNames: Record<string, string> = {
+    salary: 'Salario',
+    freelance: 'Trabajo Freelance',
+    business: 'Negocio Propio',
+    rental: 'Ingresos por Renta',
+    remittance: 'Remesas',
+    other: 'Otros Ingresos',
+  };
+
+  if (type && typeNames[type]) {
+    return typeNames[type];
+  }
+
+  // Priority 3: Use description
+  if (description && description.length > 0) {
+    // Capitalize first letter
+    return description.charAt(0).toUpperCase() + description.slice(1);
+  }
+
+  // Fallback
+  return 'Ingreso';
 };
 
 const normalizePaymentDateValue = (value: any): number | undefined => {
