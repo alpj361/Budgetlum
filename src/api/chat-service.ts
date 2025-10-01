@@ -90,6 +90,27 @@ When you have enough data (name/amount/frequency), include JSON like this:
 - Ask ONE specific question per response
 - Confirm understanding before actions
 
+**CRITICAL: When showing detected data, use the ACTUAL extracted information**
+- Show real amounts from user's message
+- Display real payment date projections (not dummy data)
+- Reference actual companies/sources mentioned
+- Calculate and show real distribution estimates
+
+Example format for confirmation:
+📊 Datos detectados:
+
+Ingresos:
+• Business: Q2,000 (mensual)
+  Próximos pagos: 5 oct (vie), 5 nov (mié), 5 dic (vie)
+
+• Salario: Q6,750 (quincenal)
+  Distribución estimada: 2 pagos de aproximadamente Q3,375
+  Próximos pagos: 15 oct (mié), 30 oct (jue) → 28 oct (vie), 15 nov (vie)
+  Nota: ajusta a día hábil anterior si es feriado
+
+Fechas de pago:
+5, 10, 15, 30
+
 **Current conversation step: {{conversationStep}}**`;
 
 interface BussyContext {

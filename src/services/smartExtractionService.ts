@@ -1,5 +1,12 @@
 import { ParsedIncome } from "../utils/incomeParser";
 import { FinancialGoal, BudgetCategory } from "../types/user";
+import { 
+  projectNextPayments, 
+  projectBiWeeklyPayments, 
+  projectWeeklyPayments,
+  formatProjection,
+  getCurrentDate 
+} from "../utils/calendar/dateUtils";
 
 export interface ExtractedData {
   incomes: ParsedIncome[];
@@ -334,13 +341,35 @@ Return only valid JSON:`;
     };
   }
 
-  static generateConfirmationPrompt(data: ExtractedData): string {
+  static generateConfirmationPrompt(data: ExtractedData, userCountry: string = 'GT'): string {
     const parts: string[] = [];
 
     if (data.incomes.length > 0) {
       parts.push(`**Ingresos detectados:**`);
       data.incomes.forEach(income => {
-        parts.push(`• $${income.amount.toLocaleString()} ${income.frequency} (${income.type || 'ingreso'})`);
+        const amount = income.amount || income.minAmount || income.maxAmount;
+        const freqText = this.getFrequencyText(income.frequency);
+        
+        parts.push(`• ${income.type || 'ingreso'}: Q${amount?.toLocaleString()} (${freqText})`);
+        
+        // Add payment date projections
+        if (income.paymentDates && income.paymentDates.length > 0) {
+          const projections = this.projectIncomePayments(income, userCountry);
+          if (projections.length > 0) {
+            parts.push(`  Distribución estimada: ${projections.length} pago(s) de aproximadamente Q${Math.round(amount! / projections.length).toLocaleString()}`);
+            parts.push(`  Próximos pagos: ${projections.map(p => formatProjection(p)).join(', ')}`);
+          }
+        }
+        
+        // Add variable income info
+        if (income.isVariable && income.minAmount && income.maxAmount) {
+          parts.push(`  Base conservadora: Q${income.minAmount.toLocaleString()}`);
+        }
+        
+        // Add notes
+        if (income.description) {
+          parts.push(`  Nota: ${income.description}`);
+        }
       });
     }
 
@@ -367,6 +396,52 @@ Return only valid JSON:`;
     }
 
     return parts.join('\n');
+  }
+
+  /**
+   * Project payment dates for an income source
+   */
+  private static projectIncomePayments(
+    income: ParsedIncome,
+    userCountry: string
+  ): any[] {
+    if (!income.paymentDates || income.paymentDates.length === 0) {
+      return [];
+    }
+
+    const frequency = income.frequency.toLowerCase();
+    
+    try {
+      if (frequency === 'bi-weekly' || frequency === 'quincenal') {
+        return projectBiWeeklyPayments(income.paymentDates, userCountry, 6, true);
+      } else if (frequency === 'monthly' || frequency === 'mensual') {
+        return projectNextPayments(income.paymentDates[0], userCountry, 3, true);
+      } else if (frequency === 'weekly' || frequency === 'semanal') {
+        return projectWeeklyPayments(income.paymentDates[0] || 5, userCountry, 4, true);
+      }
+    } catch (error) {
+      console.error('Error projecting payments:', error);
+    }
+    
+    return [];
+  }
+
+  /**
+   * Get frequency text in Spanish
+   */
+  private static getFrequencyText(frequency: string): string {
+    const map: Record<string, string> = {
+      'weekly': 'semanal',
+      'bi-weekly': 'quincenal',
+      'monthly': 'mensual',
+      'quarterly': 'trimestral',
+      'yearly': 'anual',
+      'daily': 'diario',
+      'project': 'por proyecto',
+      'seasonal': 'temporal',
+      'irregular': 'irregular',
+    };
+    return map[frequency] || frequency;
   }
 }
 

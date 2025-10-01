@@ -143,10 +143,18 @@ export const AIChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             ...options?.context,
             profile: storeSnapshot.userProfile,
             incomes: storeSnapshot.incomes,
+            userCountry: storeSnapshot.userProfile?.country || 'GT', // Default to Guatemala
           };
 
           extracted = await SmartExtractionService.extractFromMessage(userMessage.content, extractionContext);
           setLastExtraction(extracted);
+
+          // Generate confirmation with real payment projections
+          const confirmationText = SmartExtractionService.generateConfirmationPrompt(
+            extracted,
+            extractionContext.userCountry
+          );
+          console.log('📊 Datos detectados:', confirmationText);
 
           const validationResult = SmartExtractionService.validateExtraction(extracted);
 
