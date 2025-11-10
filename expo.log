@@ -1,0 +1,14 @@
++ exec gosu vibecode node node_modules/.bin/expo start --localhost
+env: load .env
+env: export EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY EXPO_PUBLIC_VIBECODE_GROK_API_KEY EXPO_PUBLIC_VIBECODE_GOOGLE_API_KEY EXPO_PUBLIC_VIBECODE_ELEVENLABS_API_KEY
+Starting project at /home/user/workspace
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+ WARN  Attempted to import the module "/home/user/workspace/node_modules/@anthropic-ai/sdk/error" which is listed in the "exports" of "/home/user/workspace/node_modules/@anthropic-ai/sdk", however no match was resolved for this request (platform = ios). Falling back to file-based resolution. Consider updating the call site or asking the package maintainer(s) to expose this API.
+ WARN  Attempted to import the module "/home/user/workspace/node_modules/@anthropic-ai/sdk/streaming" which is listed in the "exports" of "/home/user/workspace/node_modules/@anthropic-ai/sdk", however no match was resolved for this request (platform = ios). Falling back to file-based resolution. Consider updating the call site or asking the package maintainer(s) to expose this API.
+iOS ./index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 93.6% (2143/2215)
+iOS Bundled 4127ms index.ts (2450 modules)
+ LOG  [index] Project ID is:  7bff2ee3-41dc-43f1-81f5-c4a7f5a2658d
+ WARN  [Reanimated] Reduced motion setting is enabled on this device. This warning is visible only in the development mode. Some animations will be disabled by default. You can override the behavior for individual animations, see https://docs.swmansion.com/react-native-reanimated/docs/guides/troubleshooting#reduced-motion-setting-is-enabled-on-this-device.
