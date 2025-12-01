@@ -17,7 +17,7 @@ export default function WelcomeScreen() {
 
   const handleNext = () => {
     setOnboardingStep(1);
-    navigation.navigate("PersonalInfo");
+    navigation.navigate("ChatOnboarding");
   };
 
   const handleSkipToMain = () => {
