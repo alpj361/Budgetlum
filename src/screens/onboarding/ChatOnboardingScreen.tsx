@@ -103,11 +103,14 @@ export default function ChatOnboardingScreen() {
 
   // Initialize conversation
   useEffect(() => {
+    // Set mode to onboarding
+    setMode("onboarding");
+    
     if (!introMessage) {
       const welcomeMessage = `¡Hola! 👋 Soy Bussy, tu asistente financiero personal.\n\nVoy a ayudarte a crear tu presupuesto personalizado de forma súper sencilla. Solo necesito que me cuentes sobre tu situación financiera de manera natural, como si hablaras con un amigo 😊\n\n**Para empezar, cuéntame:**\n💰 ¿Cuáles son tus ingresos? (trabajo, freelance, negocio, etc.)\n📅 ¿Cada cuánto te pagan?\n💵 ¿Cuánto recibes aproximadamente?\n\n¡No te preocupes si no tienes números exactos! Aproximaciones también funcionan perfecto 🎯`;
       setIntroMessage(welcomeMessage);
     }
-  }, [introMessage]);
+  }, [introMessage, setMode]);
 
   // Keyboard handling
   const animateComposer = useCallback(
