@@ -21,6 +21,7 @@ import ChatOnboardingScreen from "../screens/onboarding/ChatOnboardingScreen";
 
 export type OnboardingStackParamList = {
   Welcome: undefined;
+  ChatOnboarding: undefined;
   PersonalInfo: undefined;
   IncomeSetup: undefined;
   IncomePathSelection: undefined;
