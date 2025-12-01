@@ -35,7 +35,7 @@ export default function WelcomeScreen() {
       currentStep={0}
       totalSteps={6}
       onNext={handleNext}
-      nextButtonText="Empezar configuración"
+      nextButtonText="Empezar con Bussy"
       showSkip={true}
       onSkip={handleSkipToMain}
     >
