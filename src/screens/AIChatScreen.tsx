@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   TextInput,
   ScrollView,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -16,306 +15,112 @@ import { useUnifiedChat } from "../contexts/UnifiedChatContext";
 import { useUserStore } from "../state/userStore";
 import { getCurrencySymbol } from "../types/centralAmerica";
 
-interface ChatMessage extends AIMessage {
-  id: string;
-  timestamp: Date;
-  actions?: AIAction[];
-}
-
-interface ActionConfirmationProps {
-  action: AIAction;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function ActionConfirmation({ action, onConfirm, onCancel }: ActionConfirmationProps) {
-  const { title, details } = aiActionService.getActionPreview(action);
-
-  return (
-    <View className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-3">
-      <View className="flex-row items-center mb-2">
-        <Ionicons name="information-circle" size={20} color="#3b82f6" />
-        <Text className="text-blue-800 font-semibold ml-2">{title}</Text>
-      </View>
-
-      {details.map((detail, index) => (
-        <Text key={index} className="text-blue-700 text-sm mb-1">• {detail}</Text>
-      ))}
-
-      <View className="flex-row justify-end mt-3 space-x-3">
-        <TouchableOpacity
-          onPress={onCancel}
-          className="px-4 py-2 rounded-lg border border-gray-300"
-        >
-          <Text className="text-gray-700 font-medium">Cancelar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={onConfirm}
-          className="px-4 py-2 rounded-lg bg-blue-600"
-        >
-          <Text className="text-white font-medium">Confirmar</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
 export default function AIChatScreen() {
-  const { expenses, budgets, getTotalSpent } = useExpenseStore();
-  const { userProfile, getTotalIncome } = useUserStore();
   const {
-    currentMode,
-    advancedModeState,
+    messages,
+    isTyping,
+    sessionConfig,
     setMode,
-    updateConversationStep,
-    addMessage,
-    addPendingAction,
-    removePendingAction,
-    updateCollectedIncomes,
-    getCurrentStepProgress,
-    isAdvancedModeActive
-  } = useConversationStore();
+    sendUserMessage,
+    resetConversation,
+  } = useUnifiedChat();
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { userProfile, incomes, budgets } = useUserStore((state) => ({
+    userProfile: state.userProfile,
+    incomes: state.incomes,
+    budgets: state.budgets,
+  }));
+
   const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [pendingActions, setPendingActions] = useState<AIAction[]>([]);
-  const [showModeSelector, setShowModeSelector] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Initialize chat based on current mode
+  const currencySymbol = getCurrencySymbol(userProfile?.country || "GT");
+
+  // Initialize chat
   useEffect(() => {
     if (!isInitialized) {
-      initializeChat();
+      setMode("standard");
+      
+      // Send welcome message
+      const welcomeMessage = userProfile?.name
+        ? `¡Hola ${userProfile.name}! 👋 Soy Bussy, tu asistente financiero personal.\n\n¿En qué puedo ayudarte hoy? Puedo:\n\n💰 Analizar tu situación financiera\n📊 Ayudarte a ajustar tu presupuesto\n🎯 Darte consejos para alcanzar tus metas\n💡 Responder preguntas sobre finanzas personales\n\n¡Solo pregúntame lo que necesites! 😊`
+        : "¡Hola! Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?";
+      
+      // The welcome message will be shown in the initial state
       setIsInitialized(true);
     }
-  }, [isInitialized, currentMode]);
+  }, [isInitialized, setMode, userProfile]);
 
-  const initializeChat = async () => {
-    try {
-      let welcomeContent: string;
-
-      if (currentMode === 'advanced') {
-        welcomeContent = await getBussyAdvancedWelcome(userProfile);
-        updateConversationStep('WELCOME');
-      } else {
-        welcomeContent = await getBussyWelcomeMessage(userProfile);
-      }
-
-      const welcomeMessage: ChatMessage = {
-        id: "welcome-1",
-        role: "assistant",
-        content: welcomeContent,
-        timestamp: new Date(),
-      };
-
-      setMessages([welcomeMessage]);
-    } catch (error) {
-      console.error("Error initializing chat:", error);
-      // Fallback welcome message
-      const fallbackMessage: ChatMessage = {
-        id: "welcome-fallback",
-        role: "assistant",
-        content: currentMode === 'advanced'
-          ? "Hola. Soy tu asistente financiero y voy a ayudarte a configurar tu presupuesto. Para empezar, cuéntame sobre tus ingresos."
-          : userProfile?.name
-          ? `Hola ${userProfile.name}. Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?`
-          : "Hola. Soy Bussy, tu asistente financiero personal. ¿En qué puedo ayudarte hoy?",
-        timestamp: new Date(),
-      };
-      setMessages([fallbackMessage]);
-    }
-  };
-
-  // Only auto-scroll when user sends a message or receives a response
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
-  };
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const sendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
+    if (!inputText.trim() || isTyping) return;
 
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: inputText.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    addMessage({ ...userMessage, role: userMessage.role as 'user' | 'assistant' });
+    const message = inputText.trim();
     setInputText("");
-    setIsLoading(true);
-
-    // Only scroll after user sends message
+    
+    await sendUserMessage(message);
     scrollToBottom();
-
-    try {
-      // Build context
-      const context = {
-        userProfile,
-        recentExpenses: expenses.slice(0, 10),
-        budgets,
-        totalSpent: getTotalSpent(),
-        monthlyIncome: getTotalIncome("monthly"),
-        conversationStep: advancedModeState.currentStep,
-        mode: currentMode
-      };
-
-      let response;
-      if (currentMode === 'advanced') {
-        response = await getBussyAdvancedResponse(userMessage.content, context);
-
-        // Handle income parsing in Advanced Mode during income setup
-        if (advancedModeState.currentStep === 'INCOME_SETUP') {
-          const parsedIncomes = parseIncomeFromText(userMessage.content);
-          if (parsedIncomes.length > 0) {
-            updateCollectedIncomes(parsedIncomes);
-          }
-        }
-      } else {
-        response = await getBussyResponse(userMessage.content, context);
-      }
-
-      // Extract actions from AI response
-      const extractedActions = aiActionService.extractActions(response.content);
-
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: response.content,
-        timestamp: new Date(),
-        actions: extractedActions
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      addMessage({ ...assistantMessage, role: assistantMessage.role as 'user' | 'assistant' });
-
-      // Only scroll after AI responds
-      scrollToBottom();
-
-      // Handle pending actions
-      if (extractedActions.length > 0) {
-        setPendingActions(extractedActions);
-        extractedActions.forEach(action => addPendingAction(action));
-      }
-
-    } catch (error) {
-      console.error("Chat error:", error);
-      Alert.alert(
-        "Error",
-        "No se pudo enviar el mensaje. Verifica tu conexión a internet y las claves de API.",
-        [{ text: "OK" }]
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleActionConfirm = async (action: AIAction) => {
-    try {
-      const result = await aiActionService.executeAction(action);
-
-      if (result.success) {
-        // Remove from pending actions
-        setPendingActions(prev => prev.filter(a => a.conversationId !== action.conversationId));
-        removePendingAction(action.conversationId);
-
-        // Add success message
-        const successMessage: ChatMessage = {
-          id: (Date.now() + 2).toString(),
-          role: "assistant",
-          content: `✅ ${result.message}`,
-          timestamp: new Date(),
-        };
-
-        setMessages(prev => [...prev, successMessage]);
-        addMessage({ ...successMessage, role: successMessage.role as 'user' | 'assistant' });
-      } else {
-        Alert.alert("Error", result.message);
-      }
-    } catch (error) {
-      console.error("Error executing action:", error);
-      Alert.alert("Error", "No se pudo ejecutar la acción");
-    }
-  };
-
-  const handleActionCancel = (action: AIAction) => {
-    setPendingActions(prev => prev.filter(a => a.conversationId !== action.conversationId));
-    removePendingAction(action.conversationId);
-  };
-
-  const toggleAdvancedMode = () => {
-    setShowModeSelector(!showModeSelector);
-  };
-
-  const selectMode = (mode: 'standard' | 'advanced') => {
-    setMode(mode);
-    setShowModeSelector(false);
-    setIsInitialized(false);
-    setMessages([]);
   };
 
   const clearChat = () => {
-    Alert.alert(
-      "Limpiar chat",
-      "¿Estás seguro de que quieres eliminar todo el historial de conversación?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Limpiar",
-          style: "destructive",
-          onPress: () => {
-            setIsInitialized(false);
-            setMessages([]);
-            setPendingActions([]);
-          },
-        },
-      ]
-    );
+    resetConversation();
+    setIsInitialized(false);
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
     return date.toLocaleTimeString("es-ES", {
       hour: "2-digit",
       minute: "2-digit",
     });
   };
 
+  // Show welcome state
+  const showWelcome = messages.length === 0;
+
   return (
     <View style={{ flex: 1 }} className="bg-gray-50">
-      {/* Header with mode toggle and progress */}
+      {/* Header */}
       <View className="bg-white border-b border-gray-200 px-4 py-3">
         <View className="flex-row justify-between items-center">
-          <TouchableOpacity
-            onPress={toggleAdvancedMode}
-            className="flex-row items-center"
-          >
-            <Ionicons
-              name={currentMode === 'advanced' ? "construct" : "chatbubble-ellipses"}
-              size={20}
-              color={currentMode === 'advanced' ? "#10b981" : "#6b7280"}
-            />
-            <Text className={`ml-2 font-medium ${
-              currentMode === 'advanced' ? "text-green-600" : "text-gray-700"
-            }`}>
-              {currentMode === 'advanced' ? 'Modo Avanzado' : 'Chat Estándar'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color="#6b7280" className="ml-1" />
-          </TouchableOpacity>
-
-          {currentMode === 'advanced' && (
-            <View className="flex-row items-center">
-              <View className="bg-green-100 rounded-full px-3 py-1">
-                <Text className="text-green-800 text-xs font-medium">
-                  {Math.round(getCurrentStepProgress() * 100)}% completo
-                </Text>
-              </View>
+          <View className="flex-row items-center">
+            <View className="w-10 h-10 bg-blue-500 rounded-full items-center justify-center mr-3">
+              <Ionicons name="chatbubbles" size={22} color="white" />
             </View>
-          )}
+            <View>
+              <Text className="text-lg font-bold text-gray-900">Chat con Bussy</Text>
+              <Text className="text-xs text-gray-600">Asistente financiero inteligente</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            onPress={clearChat}
+            className="p-2 rounded-full bg-gray-100"
+          >
+            <Ionicons name="refresh" size={20} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+
+        {/* User stats */}
+        <View className="flex-row mt-3 space-x-2">
+          <View className="flex-1 bg-blue-50 rounded-lg p-2">
+            <Text className="text-blue-600 text-xs font-medium">Ingresos</Text>
+            <Text className="text-blue-900 font-bold">{incomes.length}</Text>
+          </View>
+          <View className="flex-1 bg-green-50 rounded-lg p-2">
+            <Text className="text-green-600 text-xs font-medium">Presupuestos</Text>
+            <Text className="text-green-900 font-bold">{budgets.length}</Text>
+          </View>
         </View>
       </View>
 
@@ -329,6 +134,45 @@ export default function AIChatScreen() {
           keyboardDismissMode="on-drag"
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
         >
+          {/* Welcome state */}
+          {showWelcome && (
+            <View className="items-center py-12">
+              <View className="w-20 h-20 bg-blue-500 rounded-full items-center justify-center mb-4">
+                <Ionicons name="chatbubbles" size={40} color="white" />
+              </View>
+              <Text className="text-xl font-bold text-gray-900 mb-2">
+                {userProfile?.name ? `¡Hola ${userProfile.name}!` : "¡Hola!"}
+              </Text>
+              <Text className="text-gray-600 text-center px-6 mb-6">
+                Soy Bussy, tu asistente financiero. Estoy aquí para ayudarte con cualquier pregunta sobre tus finanzas.
+              </Text>
+
+              {/* Quick suggestions */}
+              <View className="w-full px-4">
+                <Text className="text-gray-700 font-medium mb-3">Puedo ayudarte con:</Text>
+                <View className="space-y-2">
+                  <View className="flex-row items-center bg-white rounded-lg p-3 border border-gray-200">
+                    <Ionicons name="analytics" size={20} color="#3b82f6" />
+                    <Text className="ml-3 text-gray-700">Analizar tu situación financiera</Text>
+                  </View>
+                  <View className="flex-row items-center bg-white rounded-lg p-3 border border-gray-200">
+                    <Ionicons name="wallet" size={20} color="#10b981" />
+                    <Text className="ml-3 text-gray-700">Ajustar tu presupuesto</Text>
+                  </View>
+                  <View className="flex-row items-center bg-white rounded-lg p-3 border border-gray-200">
+                    <Ionicons name="trending-up" size={20} color="#f59e0b" />
+                    <Text className="ml-3 text-gray-700">Consejos para ahorrar</Text>
+                  </View>
+                  <View className="flex-row items-center bg-white rounded-lg p-3 border border-gray-200">
+                    <Ionicons name="help-circle" size={20} color="#8b5cf6" />
+                    <Text className="ml-3 text-gray-700">Responder dudas financieras</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Chat messages */}
           <View className="space-y-2">
             {messages.map((message) => (
               <View key={message.id} className="mb-1">
@@ -362,7 +206,7 @@ export default function AIChatScreen() {
                 </View>
               </View>
             ))}
-            {isLoading && (
+            {isTyping && (
               <View className="flex-row justify-start mb-1">
                 <View className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-3 py-2 shadow-sm">
                   <View className="flex-row items-center">
@@ -383,21 +227,11 @@ export default function AIChatScreen() {
       >
         <View className="bg-white border-t border-gray-200 px-4 py-3">
           <View className="flex-row items-end space-x-3">
-            <TouchableOpacity
-              onPress={clearChat}
-              className="p-2 rounded-full bg-gray-100"
-            >
-              <Ionicons name="trash-outline" size={20} color="#6b7280" />
-            </TouchableOpacity>
-
             <View className="flex-1 bg-gray-100 rounded-2xl px-4 py-3">
               <TextInput
                 value={inputText}
                 onChangeText={setInputText}
-                placeholder={currentMode === 'advanced'
-                  ? "Describe tus ingresos o gastos..."
-                  : "Escribe tu mensaje..."
-                }
+                placeholder="Escribe tu mensaje..."
                 placeholderTextColor="#9ca3af"
                 multiline
                 maxLength={1000}
@@ -412,9 +246,9 @@ export default function AIChatScreen() {
 
             <TouchableOpacity
               onPress={sendMessage}
-              disabled={!inputText.trim() || isLoading}
+              disabled={!inputText.trim() || isTyping}
               className={`p-3 rounded-full ${
-                inputText.trim() && !isLoading
+                inputText.trim() && !isTyping
                   ? "bg-blue-500"
                   : "bg-gray-300"
               }`}
@@ -422,65 +256,12 @@ export default function AIChatScreen() {
               <Ionicons
                 name="send"
                 size={20}
-                color={inputText.trim() && !isLoading ? "white" : "#9ca3af"}
+                color={inputText.trim() && !isTyping ? "white" : "#9ca3af"}
               />
             </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
-
-      {/* Mode Selection Modal */}
-      <Modal
-        visible={showModeSelector}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowModeSelector(false)}
-      >
-        <Pressable
-          className="flex-1 bg-black/50 justify-center items-center"
-          onPress={() => setShowModeSelector(false)}
-        >
-          <View className="bg-white rounded-xl mx-6 p-6">
-            <Text className="text-lg font-bold text-gray-900 mb-4">
-              Seleccionar Modo
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => selectMode('standard')}
-              className={`p-4 rounded-lg border mb-3 ${
-                currentMode === 'standard'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200'
-              }`}
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="chatbubble-ellipses" size={24} color="#6b7280" />
-                <View className="ml-3 flex-1">
-                  <Text className="font-semibold text-gray-900">Chat Estándar</Text>
-                  <Text className="text-gray-600 text-sm">Consejos y consultas generales</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => selectMode('advanced')}
-              className={`p-4 rounded-lg border ${
-                currentMode === 'advanced'
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-200'
-              }`}
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="construct" size={24} color="#10b981" />
-                <View className="ml-3 flex-1">
-                  <Text className="font-semibold text-gray-900">Modo Avanzado</Text>
-                  <Text className="text-gray-600 text-sm">Configuración de presupuesto guiada</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
