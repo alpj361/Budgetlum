@@ -40,6 +40,7 @@ export default function ChatOnboardingScreen() {
     validation,
     syncSummary,
     onboardingPhase,
+    setMode,
     sendUserMessage,
     resetConversation,
     canFinishOnboarding,
