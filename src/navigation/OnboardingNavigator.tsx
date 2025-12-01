@@ -50,6 +50,7 @@ export default function OnboardingNavigator() {
       }}
     >
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="ChatOnboarding" component={ChatOnboardingScreen} />
       <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
       <Stack.Screen name="IncomeSetup" component={IncomeSetupScreen} />
       <Stack.Screen name="IncomePathSelection" component={IncomePathSelectionScreen} />
