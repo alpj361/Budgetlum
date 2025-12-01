@@ -9,23 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Modal,
-  Pressable,
   Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { AIMessage } from "../types/ai";
-import {
-  getBussyResponse,
-  getBussyWelcomeMessage,
-  getBussyAdvancedResponse,
-  getBussyAdvancedWelcome
-} from "../api/chat-service";
-import { useExpenseStore } from "../state/expenseStore";
+import { useUnifiedChat } from "../contexts/UnifiedChatContext";
 import { useUserStore } from "../state/userStore";
-import { useConversationStore } from "../state/conversationStore";
-import { aiActionService, AIAction } from "../services/aiActionService";
-import { parseIncomeFromText } from "../utils/incomeParser";
+import { getCurrencySymbol } from "../types/centralAmerica";
 
 interface ChatMessage extends AIMessage {
   id: string;
