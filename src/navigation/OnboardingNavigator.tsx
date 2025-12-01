@@ -17,6 +17,7 @@ import ExpenseProfileScreen from "../screens/onboarding/ExpenseProfileScreen";
 import GoalsScreen from "../screens/onboarding/GoalsScreen";
 import BudgetPreferencesScreen from "../screens/onboarding/BudgetPreferencesScreen";
 import OnboardingCompleteScreen from "../screens/onboarding/OnboardingCompleteScreen";
+import ChatOnboardingScreen from "../screens/onboarding/ChatOnboardingScreen";
 
 export type OnboardingStackParamList = {
   Welcome: undefined;
