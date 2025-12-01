@@ -31,9 +31,9 @@ export default function App() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <AIChatProvider>
+          <UnifiedChatProvider>
             <AppNavigator />
-          </AIChatProvider>
+          </UnifiedChatProvider>
           <StatusBar style="auto" />
         </SafeAreaProvider>
       </GestureHandlerRootView>
